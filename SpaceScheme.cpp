@@ -63,73 +63,125 @@ MatrixXd SpaceScheme::InitialCondition()
 Rusanov::Rusanov(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {}
 
-WRS::WRS(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
-{}
-
 // Construit le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
 void Rusanov::BuildF(const double& t, const Eigen::MatrixXd& sol)
 {
-	double b,bt;
-	for(int i=1; i <_N-2; i++)
-	{
-		_F(0,i) = 0.5*( sol(1,i+1) - sol(1,i-1) );
-		_F(1,i) = 0.5*( (sol(1,i+1)*sol(1,i+1)/sol(0,i+1) + 0.5*g*sol(0,i+1)*sol(0,i+1) - sol(3,i+1)*sol(3,i+1)/sol(0,i+1))
-									- (sol(1,i-1)*sol(1,i-1)/sol(0,i-1) + 0.5*g*sol(0,i-1)*sol(0,i-1) - sol(3,i-1)*sol(3,i-1)/sol(0,i-1)) ) ;
-		_F(2,i) = 0.5*( (sol(1,i+1)*sol(2,i+1)/sol(0,i+1) - sol(3,i+1)*sol(4,i+1)/sol(0,i+1))
-		 							-	(sol(1,i-1)*sol(2,i-1)/sol(0,i-1) - sol(3,i-1)*sol(4,i-1)/sol(0,i-1)) );
-		_F(3,i) = 0.5*( sol(3,i+1) - sol(3,i-1) )*(sol(1,i)/sol(0,i)) ;
-		_F(4,i) = 0.5*( ( sol(1,i+1)*sol(4,i+1) - sol(2,i+1)*sol(3,i+1) )/sol(0,i+1)
-		 							- ( sol(1,i-1)*sol(4,i-1) - sol(2,i-1)*sol(3,i-1) )/sol(0,i-1) ) + 0.5*( sol(3,i+1) - sol(3,i-1) )*(sol(2,i)/sol(0,i));
+	double b = 0;
 
+	for(int i = 0; i<_N; i++)
+	{
+		_F.col(i) = 0.5*(Flux_R(sol,i)-Flux_L(sol,i));
+
+		b = vp_b(sol,i);
+		if ((i!=0)&&(i!=_N-1))
+		{
+			_F.col(i) -= 0.5*b*(sol.col(i+1)-2*sol.col(i)+sol.col(i-1));
+		}
+		else if (i==0)
+		{
+			_F.col(i) -= 0.5*b*(sol.col(i+1)-2*sol.col(i)+_Ul);
+		}
+		else
+		{
+			_F.col(i) -= 0.5*b*(_Ur-2*sol.col(i)+sol.col(i-1));
+		}
+	}
+}
+
+VectorXd Rusanov::Flux_R(const Eigen::MatrixXd& sol, int i)
+{
+	VectorXd Fi;
+	Fi.resize(5);
+
+	if (i!=_N-1)
+	{
+		Fi(0) = sol(1,i+1);
+		Fi(1) = sol(1,i+1)*sol(1,i+1)/sol(0,i+1) + 0.5*g*sol(0,i+1)*sol(0,i+1) - sol(3,i+1)*sol(3,i+1)/sol(0,i+1);
+		Fi(2) = sol(1,i+1)*sol(2,i+1)/sol(0,i+1) - sol(3,i+1)*sol(4,i+1)/sol(0,i+1);
+		Fi(3) = sol(3,i+1)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( sol(1,i+1)*sol(4,i+1) - sol(2,i+1)*sol(3,i+1) )/sol(0,i+1) + sol(3,i+1)*(sol(2,i)/sol(0,i));
+	}
+	else
+	{
+		Fi(0) = _Ur(1);
+		Fi(1) = _Ur(1)*_Ur(1)/_Ur(0) + 0.5*g*_Ur(0)*_Ur(0) - _Ur(3)*_Ur(3)/_Ur(0);
+		Fi(2) = _Ur(1)*_Ur(2)/_Ur(0) - _Ur(3)*_Ur(4)/_Ur(0);
+		Fi(3) = _Ur(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( _Ur(1)*_Ur(4) - _Ur(2)*_Ur(3) )/_Ur(0) + _Ur(3)*(sol(2,i)/sol(0,i));
+	}
+
+	return Fi;
+}
+
+VectorXd Rusanov::Flux_L(const Eigen::MatrixXd& sol, int i)
+{
+	VectorXd Fi;
+	Fi.resize(5);
+
+	if (i!=0)
+	{
+		Fi(0) = sol(1,i-1);
+		Fi(1) = sol(1,i-1)*sol(1,i-1)/sol(0,i-1) + 0.5*g*sol(0,i-1)*sol(0,i-1) - sol(3,i-1)*sol(3,i-1)/sol(0,i-1);
+		Fi(2) = sol(1,i-1)*sol(2,i-1)/sol(0,i-1) - sol(3,i-1)*sol(4,i-1)/sol(0,i-1);
+		Fi(3) = sol(3,i-1)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( sol(1,i-1)*sol(4,i-1) - sol(2,i-1)*sol(3,i-1) )/sol(0,i-1) + sol(3,i-1)*(sol(2,i)/sol(0,i));
+	}
+	else
+	{
+		Fi(0) = _Ul(1);
+		Fi(1) = _Ul(1)*_Ul(1)/_Ul(0) + 0.5*g*_Ul(0)*_Ul(0) - _Ul(3)*_Ul(3)/_Ul(0);
+		Fi(2) = _Ul(1)*_Ul(2)/_Ul(0) - _Ul(3)*_Ul(4)/_Ul(0);
+		Fi(3) = _Ul(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( _Ul(1)*_Ul(4) - _Ul(2)*_Ul(3) )/_Ul(0) + _Ul(3)*(sol(2,i)/sol(0,i));
+	}
+
+	return Fi;
+}
+
+double Rusanov::vp_b(const Eigen::MatrixXd& sol, int i)
+{
+	double b=0,bt=0;
+	if ((i!=0)&&(i!=_N-1))
+	{
 		bt = max(sol(1,i)+sqrt(sol(3,i)*sol(3,i)+g*sol(0,i)),sol(1,i+1)+sqrt(sol(3,i+1)*sol(3,i+1)+g*sol(0,i+1)));
 		b  = max(abs(sol(1,i)-sqrt(sol(3,i)*sol(3,i)+g*sol(0,i))),abs(sol(1,i+1)-sqrt(sol(3,i+1)*sol(3,i+1)+g*sol(0,i+1))));
 		b  = max(b,bt);
-		_F(0,i) -= 0.5*b*(sol(0,i+1)-2*sol(0,i)+sol(0,i-1));
-		_F(1,i) -= 0.5*b*(sol(1,i+1)-2*sol(1,i)+sol(1,i-1));
-		_F(2,i) -= 0.5*b*(sol(2,i+1)-2*sol(2,i)+sol(2,i-1));
-		_F(3,i) -= 0.5*b*(sol(3,i+1)-2*sol(3,i)+sol(3,i-1));
-		_F(4,i) -= 0.5*b*(sol(4,i+1)-2*sol(4,i)+sol(4,i-1));
 	}
-	// Bord gauche
-	_F(0,0) = 0.5*( sol(1,1) - _Ul(1) );
-	_F(1,0) = 0.5*( (sol(1,1)*sol(1,1)/sol(0,1) + 0.5*g*sol(0,1)*sol(0,1) - sol(3,1)*sol(3,1)/sol(0,1))
-								- (_Ul(1)*_Ul(1)/_Ul(0) + 0.5*g*_Ul(0)*_Ul(0) - _Ul(3)*_Ul(3)/_Ul(0)) ) ;
-	_F(2,0) = 0.5*( (sol(1,1)*sol(2,1)/sol(0,1) - sol(3,1)*sol(4,1)/sol(0,1))
-								-	(_Ul(1)*_Ul(2)/_Ul(0) - _Ul(3)*_Ul(4)/_Ul(0)) );
-	_F(3,0) = 0.5*( sol(3,1) - _Ul(3) )*(sol(1,0)/sol(0,0)) ;
-	_F(4,0) = 0.5*( ( sol(1,1)*sol(4,1) - sol(2,1)*sol(3,1) )/sol(0,1)
-								- ( _Ul(1)*_Ul(4) - _Ul(2)*_Ul(3) )/_Ul(0) ) + 0.5*( sol(3,1) - _Ul(3) )*(sol(2,0)/sol(0,0));
+	else if (i==0)
+	{
+		bt = max(sol(1,0)+sqrt(sol(3,0)*sol(3,0)+g*sol(0,0)),sol(1,1)+sqrt(sol(3,1)*sol(3,1)+g*sol(0,1)));
+		b  = max(abs(sol(1,0)-sqrt(sol(3,0)*sol(3,0)+g*sol(0,0))),abs(sol(1,1)-sqrt(sol(3,1)*sol(3,1)+g*sol(0,1))));
+		b  = max(b,bt);
+	}
+	else
+	{
+		bt = max(sol(1,_N-1)+sqrt(sol(3,_N-1)*sol(3,_N-1)+g*sol(0,_N-1)),_Ur(1)+sqrt(_Ur(3)*_Ur(3)+g*_Ur(0)));
+		b  = max(abs(sol(1,_N-1)-sqrt(sol(3,_N-1)*sol(3,_N-1)+g*sol(0,_N-1))),abs(_Ur(1)-sqrt(_Ur(3)*_Ur(3)+g*_Ur(0))));
+		b  = max(b,bt);
+	}
+	return b;
+}
 
-	bt = max(sol(1,0)+sqrt(sol(3,0)*sol(3,0)+g*sol(0,0)),sol(1,1)+sqrt(sol(3,1)*sol(3,1)+g*sol(0,1)));
-	b  = max(abs(sol(1,0)-sqrt(sol(3,0)*sol(3,0)+g*sol(0,0))),abs(sol(1,1)-sqrt(sol(3,1)*sol(3,1)+g*sol(0,1))));
-	b  = max(b,bt);
-	_F(0,0) -= 0.5*b*(sol(0,1)-2*sol(0,0)+_Ul(0));
-	_F(1,0) -= 0.5*b*(sol(1,1)-2*sol(1,0)+_Ul(1));
-	_F(2,0) -= 0.5*b*(sol(2,1)-2*sol(2,0)+_Ul(2));
-	_F(3,0) -= 0.5*b*(sol(3,1)-2*sol(3,0)+_Ul(3));
-	_F(4,0) -= 0.5*b*(sol(4,1)-2*sol(4,0)+_Ul(4));
 
-	// Bord droit
-	_F(0,_N-1) = 0.5*( _Ur(1) - sol(1,_N-2) );
-	_F(1,_N-1) = 0.5*( (_Ur(1)*_Ur(1)/_Ur(0) + 0.5*g*_Ur(0)*_Ur(0) - _Ur(3)*_Ur(3)/_Ur(0))
-								- (sol(1,_N-2)*sol(1,_N-2)/sol(0,_N-2) + 0.5*g*sol(0,_N-2)*sol(0,_N-2) - sol(3,_N-2)*sol(3,_N-2)/sol(0,_N-2)) ) ;
-	_F(2,_N-1) = 0.5*( (_Ur(1)*_Ur(2)/_Ur(0) - _Ur(3)*_Ur(4)/_Ur(0))
-								-	(sol(1,_N-2)*sol(2,_N-2)/sol(0,_N-2) - sol(3,_N-2)*sol(4,_N-2)/sol(0,_N-2)) );
-	_F(3,_N-1) = 0.5*( _Ur(3) - sol(3,_N-2) )*(sol(1,_N-1)/sol(0,_N-1)) ;
-	_F(4,_N-1) = 0.5*( ( _Ur(1)*_Ur(4) - _Ur(2)*_Ur(3) )/_Ur(0)
-								- ( sol(1,_N-2)*sol(4,_N-2) - sol(2,_N-2)*sol(3,_N-2) )/sol(0,_N-2) ) + 0.5*( _Ur(3) - sol(3,_N-2) )*(sol(2,_N-1)/sol(0,_N-1));
+WRS::WRS(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
+{}
 
-	bt = max(sol(1,_N-1)+sqrt(sol(3,_N-1)*sol(3,_N-1)+g*sol(0,_N-1)),_Ur(1)+sqrt(_Ur(3)*_Ur(3)+g*_Ur(0)));
-	b  = max(abs(sol(1,_N-1)-sqrt(sol(3,_N-1)*sol(3,_N-1)+g*sol(0,_N-1))),abs(_Ur(1)-sqrt(_Ur(3)*_Ur(3)+g*_Ur(0))));
-	b  = max(b,bt);
-	_F(0,_N-1) -= 0.5*b*(_Ur(0)-2*sol(0,_N-1)+sol(0,_N-2));
-	_F(1,_N-1) -= 0.5*b*(_Ur(1)-2*sol(1,_N-1)+sol(1,_N-2));
-	_F(2,_N-1) -= 0.5*b*(_Ur(2)-2*sol(2,_N-1)+sol(2,_N-2));
-	_F(3,_N-1) -= 0.5*b*(_Ur(3)-2*sol(3,_N-1)+sol(3,_N-2));
-	_F(4,_N-1) -= 0.5*b*(_Ur(4)-2*sol(4,_N-1)+sol(4,_N-2));
+double WRS::vp_b(const Eigen::MatrixXd& sol, int i)
+{
+
 }
 
 void WRS::BuildF(const double& t, const Eigen::MatrixXd& sol)
+{
+
+}
+
+VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
+{
+
+}
+
+VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 {
 
 }
@@ -178,6 +230,32 @@ void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol, int n)
 		if (n%10 == 0)
 		cout << "Error L2" << endl;
 	}
+}
+
+// Sauvegarde la derniere solution
+void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol)
+{
+	string name_file = _results + "/sol.dat";
+
+	assert((sol.cols() == _N) && "The size of the solution matrix is not the same than the number of meshes !");
+	assert((sol.rows() == 5) && "The size of the solution matrix is not the same than the number of variables !");
+
+	double dx = 1./_N;
+
+	ofstream solution;
+	solution.open(name_file, ios::out);
+	solution.precision(7);
+
+	solution << 0. << " " << _Ul(0) << " " << _Ul(1)/_Ul(0) << " " << _Ul(2)/_Ul(0)
+																	<< " " << _Ul(3)/_Ul(0) << " " << _Ul(4)/_Ul(0) << endl;
+	for (size_t i = 0; i < _N; i++)
+		solution << (i+0.5)*dx << " " << sol(0,i) << " " << sol(1,i)/sol(0,i) << " " << sol(2,i)/sol(0,i)
+																							<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
+
+  solution << 1. << " " << _Ur(0) << " " << _Ur(1)/_Ur(0) << " " << _Ur(2)/_Ur(0)
+																	<< " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0) << endl;
+
+	solution.close();
 }
 
 void SpaceScheme::ComputeError(const double t)

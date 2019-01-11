@@ -51,7 +51,7 @@ int main(int argc, char** argv)
   time_scheme->Initialize(data_file, pb); // Initialisation
   time_scheme->SaveSolution(0); // Sauvegarde condition initiale
 
-  int nsave = nb_iterations/20;
+  int nsave = nb_iterations/10;
   for (int n = 1; n <= nb_iterations; n++) // Boucle en temps
   {
     cout.flush();
@@ -61,6 +61,7 @@ int main(int argc, char** argv)
     if((!(n%nsave))||(n==nb_iterations))
       time_scheme->SaveSolution(n);
   }
+  time_scheme->SaveSolution();
   // Fin du chrono
   auto finish = chrono::high_resolution_clock::now();
   double t = chrono::duration_cast<chrono::milliseconds>(finish-start).count();

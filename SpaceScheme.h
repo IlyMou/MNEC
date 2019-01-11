@@ -30,6 +30,11 @@ class SpaceScheme {
 		// Renvoie le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
 	  Eigen::MatrixXd& GetF() {return _F;};
 
+		virtual Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i) = 0;
+		virtual Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i) = 0;
+
+		virtual double vp_b(const Eigen::MatrixXd& sol, int i) = 0;
+
 	  // Condition Initiale au centre des triangles
 	  Eigen::MatrixXd InitialCondition();
 
@@ -38,6 +43,9 @@ class SpaceScheme {
 
 	  // Sauvegarde la solution
 	  void SaveSol(const Eigen::MatrixXd& sol, int n);
+
+		// Sauvegarde la solution
+		void SaveSol(const Eigen::MatrixXd& sol);
 
 		// Calcul de l'erreur en norme L2
 		void ComputeError(const double t);
@@ -51,6 +59,12 @@ class Rusanov : public SpaceScheme
 
     // Une étape du schéma en temps
     void BuildF(const double& t, const Eigen::MatrixXd& sol);
+
+		Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i);
+
+		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
+
+		double vp_b(const Eigen::MatrixXd& sol, int i);
 };
 
 class WRS : public SpaceScheme
@@ -61,6 +75,12 @@ class WRS : public SpaceScheme
 
     // Une étape du schéma en temps
     void BuildF(const double& t, const Eigen::MatrixXd& sol);
+
+		Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i);
+
+		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
+
+		double vp_b(const Eigen::MatrixXd& sol, int i);
 };
 
 

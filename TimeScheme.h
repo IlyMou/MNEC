@@ -26,6 +26,8 @@ class TimeScheme
     void Initialize(DataFile* data_file, SpaceScheme* pb);
     // Enregistre la solution un fichier
     void SaveSolution(int n);
+    // Enregistre la derniere solution un fichier
+    void SaveSolution();
     // Une étape du schéma en temps
     virtual void Advance() = 0;
     // Permet de récupérer _sol
