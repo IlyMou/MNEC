@@ -1,0 +1,29 @@
+N_mesh
+5000
+
+t0
+0
+tfinal
+0.1
+dt
+0.00001
+
+scheme
+RungeKutta
+# ExplicitEuler = Explicit Euler, RungeKutta = Runge Kutta 4
+
+initial_condition
+riemann 0.5 1 0.2 0.7 0.5 0.4 0.5 -0.1 0.3 1 0.1
+# riemann x0 h_l u_l v_l a_l b_l h_r u_r v_r a_r b_r
+# gaussian x0 y0 a, rectangular x0 y0 b
+
+numerical_flux
+rusanov
+# rusanov, wrs = 5-Wave Relaxation Solver
+
+norm_l2
+no
+#yes or no
+
+results
+Results/
