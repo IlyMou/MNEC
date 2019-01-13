@@ -11,7 +11,7 @@ class DataFile {
 private:
   std::string _file_name;
 
-  int _N_mesh;
+  int _N_mesh, _order;
   double _t0, _tfinal, _dt;
   double _x0, _y0, _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
 
@@ -25,6 +25,7 @@ private:
   bool _if_t0;
   bool _if_tfinal;
   bool _if_dt;
+  bool _if_order;
   bool _if_scheme;
   bool _if_initial_condition_choice;
   bool _if_numerical_flux_choice;
@@ -36,6 +37,7 @@ public: // Méthodes et opérateurs de la classe
   void ReadDataFile();
   void Adapt_dt(double dt){_dt = dt;};
   int Get_N_mesh() const {return _N_mesh;};
+  int Get_order() const {return _order;};
   double Get_t0() const {return _t0;};
   double Get_tfinal() const {return _tfinal;};
   double Get_dt() const {return _dt;};

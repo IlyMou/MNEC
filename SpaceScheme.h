@@ -55,11 +55,27 @@ class SpaceScheme {
 		double& Getbmax() {return _bmax;};
 };
 
-class Rusanov : public SpaceScheme
+class Rusanov1 : public SpaceScheme
 {
   public:
 		// Constructeur
-		Rusanov(DataFile* data_file);
+		Rusanov1(DataFile* data_file);
+
+    // Une étape du schéma en temps
+    void BuildF(const double& t, const Eigen::MatrixXd& sol);
+
+		Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i);
+
+		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
+
+		double vp_b(const Eigen::MatrixXd& sol, int i);
+};
+
+class Rusanov2 : public SpaceScheme
+{
+  public:
+		// Constructeur
+		Rusanov2(DataFile* data_file);
 
     // Une étape du schéma en temps
     void BuildF(const double& t, const Eigen::MatrixXd& sol);

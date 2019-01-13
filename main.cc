@@ -28,10 +28,12 @@ int main(int argc, char** argv)
 
   // ---------------------------- Résolution  ----------------------------------
   SpaceScheme* pb = NULL;
-  if (data_file->Get_numerical_flux_choice() == "rusanov")
-    pb = new Rusanov(data_file);
-  else
+  if (data_file->Get_numerical_flux_choice() == "wrs")
     pb = new WRS(data_file);
+  else if (data_file->Get_order() == 1)
+    pb = new Rusanov1(data_file);
+  else
+    pb = new Rusanov2(data_file);
 
   TimeScheme* time_scheme = NULL;
   if (data_file->Get_scheme() == "SSPRK2")

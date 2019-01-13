@@ -60,11 +60,15 @@ MatrixXd SpaceScheme::InitialCondition()
 	return _U;
 }
 
-Rusanov::Rusanov(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
+
+// -----------------------------------------
+//   Rusanov ordre 1
+// -----------------------------------------
+Rusanov1::Rusanov1(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {}
 
 // Construit le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
-void Rusanov::BuildF(const double& t, const Eigen::MatrixXd& sol)
+void Rusanov1::BuildF(const double& t, const Eigen::MatrixXd& sol)
 {
 	double bl = 0, br = 0; _bmax = 0;
 
@@ -95,7 +99,7 @@ void Rusanov::BuildF(const double& t, const Eigen::MatrixXd& sol)
 	_F = -_N*_F;
 }
 
-VectorXd Rusanov::Flux_R(const Eigen::MatrixXd& sol, int i)
+VectorXd Rusanov1::Flux_R(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi;
 	Fi.resize(5);
@@ -120,7 +124,7 @@ VectorXd Rusanov::Flux_R(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-VectorXd Rusanov::Flux_L(const Eigen::MatrixXd& sol, int i)
+VectorXd Rusanov1::Flux_L(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi;
 	Fi.resize(5);
@@ -145,7 +149,7 @@ VectorXd Rusanov::Flux_L(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-double Rusanov::vp_b(const Eigen::MatrixXd& sol, int i)
+double Rusanov1::vp_b(const Eigen::MatrixXd& sol, int i)
 {
 	double b=0,bt=0;
 	double ul, ur, al, ar, hl, hr;
@@ -176,6 +180,48 @@ double Rusanov::vp_b(const Eigen::MatrixXd& sol, int i)
 }
 
 
+// -----------------------------------------
+//   Rusanov ordre 1
+// -----------------------------------------
+Rusanov2::Rusanov2(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
+{}
+
+// Construit le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
+void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
+{
+	double bl = 0, br = 0; _bmax = 0;
+
+	_F = -_N*_F;
+}
+
+VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
+{
+	VectorXd Fi;
+	Fi.resize(5);
+
+	return Fi;
+}
+
+VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
+{
+	VectorXd Fi;
+	Fi.resize(5);
+
+	return Fi;
+}
+
+double Rusanov2::vp_b(const Eigen::MatrixXd& sol, int i)
+{
+	double b=0,bt=0;
+	double ul, ur, al, ar, hl, hr;
+
+	return b;
+}
+
+
+// -----------------------------------------
+//   Relaxation method
+// -----------------------------------------
 WRS::WRS(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {}
 

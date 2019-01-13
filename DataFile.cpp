@@ -99,6 +99,11 @@ void DataFile::ReadDataFile()
       }
     }
 
+    if (file_line.find("ordre") != std::string::npos)
+    {
+      data_file >> _order; _if_order = true;
+    }
+
     if (file_line.find("results") != std::string::npos)
     {
       data_file >> _results; _if_results = true;
@@ -140,7 +145,6 @@ void DataFile::ReadDataFile()
     cout << "Beware - The default results folder name (results) is used." << endl;
     _results = "results";
   }
-  cout << "-------------------------------------------------" << endl;
   if (!_if_N_mesh)
   {
     cout << "-------------------------------------------------" << endl;
@@ -159,19 +163,28 @@ void DataFile::ReadDataFile()
     cout << "Beware - The default value (rusanov) is used for the numerical flow." << endl;
     _numerical_flux_choice = "rusanov";
   }
+  if (!_if_order)
+  {
+    cout << "-------------------------------------------------" << endl;
+    cout << "Beware - The default order 1 is used." << endl;
+    _order = 1;
+  }
   if (!_if_norm_l2)
   {
     cout << "-------------------------------------------------" << endl;
     cout << "Beware - The default choice (no) for L2 norm is used." << endl;
     _norm_l2 = "no";
   }
+  cout << "-------------------------------------------------" << endl;
 
-  cout << " -- Solver : " << _numerical_flux_choice << endl;
-  cout << " -- Scheme : " << _scheme << endl;
+  cout << " -- Solver : " << _numerical_flux_choice;
+  if(_numerical_flux_choice=="rusanov") cout << "  order " << _order;
+  cout << endl;
+  cout << " -- Time Scheme : " << _scheme << endl;
   cout << " -- Time step : " << _dt << endl;
   cout << " -- Mesh step : " << _N_mesh << endl;
   cout << " -- CFL : " << cfl << endl;
-  
+
   if ((((_scheme != "RK2")||(_scheme != "SSPRK2"))&&(cfl>0.25))
   ||((_scheme != "RK4")&&(cfl>0.125))||((_scheme != "ExplicitEuler")&&(cfl>0.5)))
   {
