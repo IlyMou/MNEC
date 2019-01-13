@@ -66,25 +66,31 @@ Rusanov::Rusanov(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 // Construit le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
 void Rusanov::BuildF(const double& t, const Eigen::MatrixXd& sol)
 {
-	double b = 0;
+	double bl = 0, br = 0; _bmax = 0;
 
 	for(int i = 0; i<_N; i++)
 	{
 		_F.col(i) = 0.5*(Flux_R(sol,i)-Flux_L(sol,i));
 
-		b = vp_b(sol,i);
+		bl = vp_b(sol,i);
+		br = vp_b(sol,i+1);
 		if ((i!=0)&&(i!=_N-1))
 		{
-			_F.col(i) -= 0.5*b*(sol.col(i+1)-2*sol.col(i)+sol.col(i-1));
+			_F.col(i) += 0.5*( bl*(sol.col(i)-sol.col(i-1)) - br*(sol.col(i+1)-sol.col(i)) );
 		}
 		else if (i==0)
 		{
-			_F.col(i) -= 0.5*b*(sol.col(i+1)-2*sol.col(i)+_Ul);
+			_F.col(i) += 0.5*( bl*(sol.col(i)-_Ul) - br*(sol.col(i+1)-sol.col(i)) );
 		}
 		else
 		{
-			_F.col(i) -= 0.5*b*(_Ur-2*sol.col(i)+sol.col(i-1));
+			_F.col(i) += 0.5*( bl*(sol.col(i)-sol.col(i-1)) - br*(_Ur-sol.col(i)) );
 		}
+
+		if(_bmax<bl)
+			_bmax = bl;
+		if(_bmax<br)
+			_bmax = br;
 	}
 	_F = -_N*_F;
 }
@@ -142,24 +148,30 @@ VectorXd Rusanov::Flux_L(const Eigen::MatrixXd& sol, int i)
 double Rusanov::vp_b(const Eigen::MatrixXd& sol, int i)
 {
 	double b=0,bt=0;
-	if ((i!=0)&&(i!=_N-1))
+	double ul, ur, al, ar, hl, hr;
+	if ((i!=0)&&(i!=_N))
 	{
-		bt = max(sol(1,i)+sqrt(sol(3,i)*sol(3,i)+g*sol(0,i)),sol(1,i+1)+sqrt(sol(3,i+1)*sol(3,i+1)+g*sol(0,i+1)));
-		b  = max(abs(sol(1,i)-sqrt(sol(3,i)*sol(3,i)+g*sol(0,i))),abs(sol(1,i+1)-sqrt(sol(3,i+1)*sol(3,i+1)+g*sol(0,i+1))));
-		b  = max(b,bt);
+		ul = sol(1,i-1)/sol(0,i-1); ur = sol(1,i)/sol(0,i);
+		al = sol(3,i-1)/sol(0,i-1);	ar = sol(3,i)/sol(0,i);
+		hl = sol(0,i-1);            hr = sol(0,i);
 	}
 	else if (i==0)
 	{
-		bt = max(sol(1,0)+sqrt(sol(3,0)*sol(3,0)+g*sol(0,0)),sol(1,1)+sqrt(sol(3,1)*sol(3,1)+g*sol(0,1)));
-		b  = max(abs(sol(1,0)-sqrt(sol(3,0)*sol(3,0)+g*sol(0,0))),abs(sol(1,1)-sqrt(sol(3,1)*sol(3,1)+g*sol(0,1))));
-		b  = max(b,bt);
+		ul = _Ul(1)/_Ul(0); ur = sol(1,0)/sol(0,0);
+		al = _Ul(3)/_Ul(0);	ar = sol(3,0)/sol(0,0);
+		hl = _Ul(0);        hr = sol(0,0);
 	}
 	else
 	{
-		bt = max(sol(1,_N-1)+sqrt(sol(3,_N-1)*sol(3,_N-1)+g*sol(0,_N-1)),_Ur(1)+sqrt(_Ur(3)*_Ur(3)+g*_Ur(0)));
-		b  = max(abs(sol(1,_N-1)-sqrt(sol(3,_N-1)*sol(3,_N-1)+g*sol(0,_N-1))),abs(_Ur(1)-sqrt(_Ur(3)*_Ur(3)+g*_Ur(0))));
-		b  = max(b,bt);
+		ul = sol(1,_N-1)/sol(0,_N-1); ur = _Ur(1)/_Ur(0);
+		al = sol(3,_N-1)/sol(0,_N-1);	ar = _Ur(3)/_Ur(0);
+		hl = sol(0,_N-1);             hr = _Ur(0);
 	}
+
+	b  = max(abs(ul-sqrt(al*al+g*hl)),ul+sqrt(al*al+g*hl));
+	bt = max(abs(ur-sqrt(ar*ar+g*hr)),ur+sqrt(ar*ar+g*hr));
+	b  = max(b, bt);
+
 	return b;
 }
 

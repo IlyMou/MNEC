@@ -1,5 +1,5 @@
 N_mesh
-500
+1000
 
 t0
 0
@@ -9,7 +9,7 @@ dt
 0.00001
 
 scheme
-RK4
+SSPRK2
 # ExplicitEuler = Explicit Euler,SPPRK2 = SSP-Runge Kutta 2, RK2 = Runge Kutta 2, RK4 = Runge Kutta 4
 
 initial_condition

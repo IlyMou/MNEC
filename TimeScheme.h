@@ -32,6 +32,8 @@ class TimeScheme
     virtual void Advance() = 0;
     // Permet de récupérer _sol
     const Eigen::MatrixXd & GetIterateSolution() const;
+    // Verification de la numerical_flux
+    void Check_CFL(double alpha);
 };
 
 class EulerScheme : public TimeScheme

@@ -44,7 +44,7 @@ const MatrixXd & TimeScheme::GetIterateSolution() const
 // Euler Explicite
 void EulerScheme::Advance()
 {
-  _pb->BuildF(_t, _sol);
+  _pb->BuildF(_t, _sol);  Check_CFL(1);
   _sol += _dt*_pb->GetF();
   _t += _dt;
 }
@@ -53,7 +53,7 @@ void EulerScheme::Advance()
 void RK2::Advance()
 {
   MatrixXd k1, k2;
-  _pb->BuildF(_t, _sol);
+  _pb->BuildF(_t, _sol);  Check_CFL(2);
   k1 = _sol + 0.5*_dt*_pb->GetF();
   _pb->BuildF(_t+0.5*_dt, k1);
   k2 = _pb->GetF();
@@ -65,7 +65,7 @@ void RK2::Advance()
 void SSPRK2::Advance()
 {
   MatrixXd k1, k2;
-  _pb->BuildF(_t, _sol);
+  _pb->BuildF(_t, _sol);  Check_CFL(2);
   k1 = _sol + _dt*_pb->GetF();
   _pb->BuildF(_t, k1);
   k2 = _pb->GetF();
@@ -76,7 +76,7 @@ void SSPRK2::Advance()
 void RK4::Advance()
 {
   MatrixXd k1, k2, k3, k4;
-  _pb->BuildF(_t, _sol);
+  _pb->BuildF(_t, _sol);  Check_CFL(4);
   k1 = _pb->GetF();
   _pb->BuildF(_t+_dt/2., _sol+_dt/2.*k1);
   k2 = _pb->GetF();
@@ -88,6 +88,16 @@ void RK4::Advance()
   _t += _dt;
 }
 
+void TimeScheme::Check_CFL(double alpha)
+{
+  //cout << "bmax = " << _pb->Getbmax() << " ; CFL = " << _pb->Getbmax()*_dt*_N << endl;
+  double cfl = _pb->Getbmax()*alpha*_dt*_N;
+  if( cfl > 0.5 )
+  {
+    cout << "The CFL is not respected ! bmax * (Delta t / Delta x) = " <<  cfl/alpha << endl << endl;
+    abort();
+  }
+}
 
 #define _TIME_SCHEME_CPP
 #endif

@@ -9,6 +9,7 @@
 class SpaceScheme {
 	protected:
 		int _N;
+		double _bmax;
 		const std::string _results;
 
 		Eigen::MatrixXd _U, _F;
@@ -49,6 +50,9 @@ class SpaceScheme {
 
 		// Calcul de l'erreur en norme L2
 		void ComputeError(const double t);
+
+		// Renvoie la valeur maximal de vitesse
+		double& Getbmax() {return _bmax;};
 };
 
 class Rusanov : public SpaceScheme

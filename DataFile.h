@@ -3,8 +3,10 @@
 #include <string>
 #include <vector>
 #include <iostream>
-// Définition de la classe
 
+#define g 9.8
+
+// Définition de la classe
 class DataFile {
 private:
   std::string _file_name;
@@ -48,7 +50,7 @@ public: // Méthodes et opérateurs de la classe
   double Get_param_g() const { return _g;};
   double Get_param_h() const { return _h;};
   double Get_param_i() const { return _i;};
-  double Get_param_j() const { return _j;};  
+  double Get_param_j() const { return _j;};
   std::string Get_scheme() const {return _scheme;};
   std::string Get_initial_condition_choice() const {return _initial_condition_choice;};
   std::string Get_numerical_flux_choice() const {return _numerical_flux_choice;};
