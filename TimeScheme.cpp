@@ -45,25 +45,49 @@ const MatrixXd & TimeScheme::GetIterateSolution() const
 void EulerScheme::Advance()
 {
   _pb->BuildF(_t, _sol);
-  _sol -= _N*_dt*_pb->GetF();
+  _sol += _dt*_pb->GetF();
   _t += _dt;
 }
 
 // RungeKutta
-void RungeKuttaScheme::Advance()
+void RK2::Advance()
+{
+  MatrixXd k1, k2;
+  _pb->BuildF(_t, _sol);
+  k1 = _sol + 0.5*_dt*_pb->GetF();
+  _pb->BuildF(_t+0.5*_dt, k1);
+  k2 = _pb->GetF();
+  _sol += _dt*k2;
+  _t += _dt;
+}
+
+// RungeKutta
+void SSPRK2::Advance()
+{
+  MatrixXd k1, k2;
+  _pb->BuildF(_t, _sol);
+  k1 = _sol + _dt*_pb->GetF();
+  _pb->BuildF(_t, k1);
+  k2 = _pb->GetF();
+  _sol = 0.5*_sol +0.5*k1 + 0.5*_dt*k2;
+  _t += _dt;
+}
+
+void RK4::Advance()
 {
   MatrixXd k1, k2, k3, k4;
   _pb->BuildF(_t, _sol);
-  k1 = -_N*_pb->GetF();
+  k1 = _pb->GetF();
   _pb->BuildF(_t+_dt/2., _sol+_dt/2.*k1);
-  k2 = -_N*_pb->GetF();
+  k2 = _pb->GetF();
   _pb->BuildF(_t+_dt/2., _sol+_dt/2.*k2);
-  k3 = -_N*_pb->GetF();
+  k3 = _pb->GetF();
   _pb->BuildF(_t+_dt, _sol+_dt*k3);
-  k4 = -_N*_pb->GetF();
+  k4 = _pb->GetF();
   _sol += _dt/6.*(k1 + 2.*k2 + 2.*k3 + k4);
   _t += _dt;
 }
+
 
 #define _TIME_SCHEME_CPP
 #endif

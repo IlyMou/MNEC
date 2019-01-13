@@ -34,8 +34,12 @@ int main(int argc, char** argv)
     pb = new WRS(data_file);
 
   TimeScheme* time_scheme = NULL;
-  if (data_file->Get_scheme() == "RungeKutta")
-    time_scheme = new RungeKuttaScheme();
+  if (data_file->Get_scheme() == "SSPRK2")
+    time_scheme = new SSPRK2();
+  else if (data_file->Get_scheme() == "RK2")
+    time_scheme = new RK2();
+  if (data_file->Get_scheme() == "RK4")
+    time_scheme = new RK4();
   else
     time_scheme = new EulerScheme();
 

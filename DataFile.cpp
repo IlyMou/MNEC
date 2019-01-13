@@ -88,9 +88,9 @@ _if_scheme(false),_if_initial_condition_choice(false),
       if (file_line.find("scheme") != std::string::npos)
       {
         data_file >> _scheme; _if_scheme = true;
-        if ((_scheme != "ExplicitEuler") && (_scheme != "RungeKutta"))
+        if ((_scheme != "ExplicitEuler") && (_scheme != "RK2") && (_scheme != "SSPRK2") && (_scheme != "RK4"))
         {
-          cout << "Only Explicit Euler and Runge Kutta 2 are implemented." << endl;
+          cout << "Only Explicit Euler, SSP-RK2, RK2 and RK4 are implemented." << endl;
           abort();
         }
       }

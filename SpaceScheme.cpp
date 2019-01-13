@@ -86,6 +86,7 @@ void Rusanov::BuildF(const double& t, const Eigen::MatrixXd& sol)
 			_F.col(i) -= 0.5*b*(_Ur-2*sol.col(i)+sol.col(i-1));
 		}
 	}
+	_F = -_N*_F;
 }
 
 VectorXd Rusanov::Flux_R(const Eigen::MatrixXd& sol, int i)

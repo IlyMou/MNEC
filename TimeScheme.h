@@ -41,12 +41,25 @@ class EulerScheme : public TimeScheme
     void Advance();
 };
 
-class RungeKuttaScheme : public TimeScheme
+class RK2 : public TimeScheme
 {
   public:
     // Une étape du schéma en temps
     void Advance();
 };
 
+class SSPRK2 : public TimeScheme
+{
+  public:
+    // Une étape du schéma en temps
+    void Advance();
+};
+
+class RK4 : public TimeScheme
+{
+  public:
+    // Une étape du schéma en temps
+    void Advance();
+};
 #define _TIME_SCHEME_H
 #endif
