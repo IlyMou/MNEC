@@ -183,7 +183,7 @@ double Rusanov1::vp_b(const Eigen::MatrixXd& sol, int i)
 // -----------------------------------------
 //   Rusanov ordre 1
 // -----------------------------------------
-Rusanov2::Rusanov2(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
+Rusanov2::Rusanov2(DataFile* data_file) : Rusanov1::Rusanov1(data_file)
 {}
 
 // Construit le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
@@ -194,7 +194,7 @@ void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
 	_F = -_N*_F;
 }
 
-VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
+VectorXd Rusanov2::Flux_R2(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi;
 	Fi.resize(5);
@@ -202,7 +202,7 @@ VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
+VectorXd Rusanov2::Flux_L2(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi;
 	Fi.resize(5);
@@ -210,12 +210,41 @@ VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-double Rusanov2::vp_b(const Eigen::MatrixXd& sol, int i)
+double Rusanov2::limPente(const Eigen::MatrixXd& sol, int var, int i)
 {
-	double b=0,bt=0;
-	double ul, ur, al, ar, hl, hr;
+	double phi, theta;
+	double u, v, w;
 
-	return b;
+	v = sol(var,i);
+	if((i > 0)&&(i<_N-1))
+	{
+		u = sol(var,i-1);
+		w = sol(var,i+1);
+	}
+	else if (i == 0)
+	{
+		u = _Ul(var);
+		w = sol(var,i+1);
+	}
+	else
+	{
+		u = sol(var,i-1);
+		w = _Ur(var);
+	}
+
+	if((abs(v-u)<1e-6)&&(abs(w-v)<1e-6))
+		theta = 1;
+	else if(abs(w-v)<1e-6)
+		theta = 0;
+	else
+		theta = (v-u)/(w-u);
+
+	if((theta<0.25)||(theta >4))
+		theta = 0;
+
+	phi = (theta + abs(theta))/(1.+theta);
+
+	return phi;
 }
 
 
