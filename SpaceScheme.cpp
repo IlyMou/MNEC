@@ -234,7 +234,7 @@ double Rusanov2::limPente(const Eigen::MatrixXd& sol, int var, int i)
 
 	if((abs(v-u)<1e-6)&&(abs(w-v)<1e-6))
 		theta = 1;
-	else if(abs(w-v)<1e-6)
+	else if(abs(w-v)<2.5e-7)
 		theta = 0;
 	else
 		theta = (v-u)/(w-u);
