@@ -34,7 +34,7 @@ class SpaceScheme {
 		virtual Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i) = 0;
 		virtual Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i) = 0;
 
-		virtual double vp_b(const Eigen::MatrixXd& sol, int i) = 0;
+		virtual double vp_b(const Eigen::MatrixXd& sol, int i);
 
 	  // Condition Initiale au centre des triangles
 	  Eigen::MatrixXd InitialCondition();
@@ -67,11 +67,9 @@ class Rusanov1 : public SpaceScheme
 		Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i);
 
 		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
-
-		double vp_b(const Eigen::MatrixXd& sol, int i);
 };
 
-class Rusanov2 : public Rusanov1
+class Rusanov2 : public SpaceScheme
 {
   public:
 		// Constructeur
@@ -80,9 +78,9 @@ class Rusanov2 : public Rusanov1
     // Une étape du schéma en temps
     void BuildF(const double& t, const Eigen::MatrixXd& sol);
 
-		Eigen::VectorXd Flux_R2(const Eigen::MatrixXd& sol, int i);
+		Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i);
 
-		Eigen::VectorXd Flux_L2(const Eigen::MatrixXd& sol, int i);
+		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
 
 		double limPente(const Eigen::MatrixXd& sol, int var, int i);
 };

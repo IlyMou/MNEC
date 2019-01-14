@@ -57,7 +57,7 @@ int main(int argc, char** argv)
   time_scheme->Initialize(data_file, pb); // Initialisation
   time_scheme->SaveSolution(0); // Sauvegarde condition initiale
 
-  int nsave = nb_iterations/10;
+  int nsave = nb_iterations/4;
   for (int n = 1; n <= nb_iterations; n++) // Boucle en temps
   {
     cout.flush();

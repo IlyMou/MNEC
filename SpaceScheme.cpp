@@ -149,7 +149,7 @@ VectorXd Rusanov1::Flux_L(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-double Rusanov1::vp_b(const Eigen::MatrixXd& sol, int i)
+double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
 {
 	double b=0,bt=0;
 	double ul, ur, al, ar, hl, hr;
@@ -183,7 +183,7 @@ double Rusanov1::vp_b(const Eigen::MatrixXd& sol, int i)
 // -----------------------------------------
 //   Rusanov ordre 1
 // -----------------------------------------
-Rusanov2::Rusanov2(DataFile* data_file) : Rusanov1::Rusanov1(data_file)
+Rusanov2::Rusanov2(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {}
 
 // Construit le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
@@ -191,21 +191,163 @@ void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
 {
 	double bl = 0, br = 0; _bmax = 0;
 
+	for(int i = 0; i<_N; i++)
+	{
+		_F.col(i) = 0.5*(Flux_R(sol,i)-Flux_L(sol,i));
+
+		bl = vp_b(sol,i);
+		br = vp_b(sol,i+1);
+		if ((i!=0)&&(i<_N-2))
+		{
+			_F.col(i) += 0.5*( br*( sol.col(i+2)-2*sol.col(i+1)+sol.col(i) )
+			 									-bl*( sol.col(i+1)-2*sol.col(i)+sol.col(i-1) ) );
+		}
+		else if (i==0)
+		{
+			_F.col(i) += 0.5*( br*( sol.col(i+2)-2*sol.col(i+1)+sol.col(i) )
+			 									-bl*( sol.col(i+1)-2*sol.col(i)+_Ul ) );
+		}
+		else if (i==_N-2)
+		{
+				_F.col(i) += 0.5*( br*( _Ur-2*sol.col(i+1)+sol.col(i) )
+													-bl*( sol.col(i+1)-2*sol.col(i)+sol.col(i-1) ) );
+		}
+		else
+		{
+			_F.col(i) += 0.5*( br*( -_Ur+sol.col(i) )
+			 									-bl*( _Ur-2*sol.col(i)+sol.col(i-1) ) );
+		}
+
+		if(_bmax<bl)
+			_bmax = bl;
+		if(_bmax<br)
+			_bmax = br;
+	}
 	_F = -_N*_F;
 }
 
-VectorXd Rusanov2::Flux_R2(const Eigen::MatrixXd& sol, int i)
+VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
 {
-	VectorXd Fi;
+	VectorXd Fi, solt;
 	Fi.resize(5);
+
+	if (i<_N-2)
+	{
+		solt = 0.5*( 3*sol.col(i+1)-sol.col(i+2) );
+
+		Fi(0) = solt(1);
+		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+
+		solt = 0.5*( sol.col(i+1)+sol.col(i) );
+
+		Fi(0) += solt(1);
+		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+	}
+	else if (i==_N-2)
+	{
+		solt = 0.5*( 3*sol.col(i+1)-_Ur);
+
+		Fi(0) = solt(1);
+		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+
+		solt = 0.5*( sol.col(i+1)+sol.col(i) );
+
+		Fi(0) += solt(1);
+		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+	}
+	else
+	{
+		solt = _Ur;
+
+		Fi(0) = solt(1);
+		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+
+		solt = 0.5*( _Ur+sol.col(i) );
+
+		Fi(0) += solt(1);
+		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+	}
 
 	return Fi;
 }
 
-VectorXd Rusanov2::Flux_L2(const Eigen::MatrixXd& sol, int i)
+VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
 {
-	VectorXd Fi;
+	VectorXd Fi, solt;
 	Fi.resize(5);
+
+	if ((i!=0)&&(i!=_N-1))
+	{
+		solt = 0.5*( 3*sol.col(i)-sol.col(i+1) );
+
+		Fi(0) = solt(1);
+		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+
+		solt = 0.5*( sol.col(i-1)+sol.col(i) );
+
+		Fi(0) += solt(1);
+		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+	}
+	else if (i==0)
+	{
+		solt = 0.5*( 3*sol.col(i)-sol.col(i+1) );
+
+		Fi(0) = solt(1);
+		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+
+		solt = 0.5*( _Ul+sol.col(i) );
+
+		Fi(0) += solt(1);
+		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+	}
+	else
+	{
+		solt = 0.5*( 3*sol.col(i)-_Ur );
+
+		Fi(0) = solt(1);
+		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+
+		solt = 0.5*( sol.col(i-1)+sol.col(i) );
+
+		Fi(0) += solt(1);
+		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
+		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+	}
 
 	return Fi;
 }

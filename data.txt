@@ -13,10 +13,6 @@ SSPRK2
 # ExplicitEuler = Explicit Euler,SPPRK2 = SSP-Runge Kutta 2,
 # RK2 = Runge Kutta 2, RK4 = Runge Kutta 4
 
-ordre
-1
-# Ordre 1 ou 2
-
 initial_condition
 riemann 0.5 1 0.2 0.7 0.5 0.4 0.5 -0.1 0.3 1 0.1
 # riemann x0 h_l u_l v_l a_l b_l h_r u_r v_r a_r b_r
@@ -25,6 +21,10 @@ riemann 0.5 1 0.2 0.7 0.5 0.4 0.5 -0.1 0.3 1 0.1
 numerical_flux
 rusanov
 # rusanov, wrs = 5-Wave Relaxation Solver
+
+ordre
+2
+# Ordre 1 ou 2
 
 norm_l2
 no
