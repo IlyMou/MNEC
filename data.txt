@@ -24,10 +24,10 @@ rusanov
 
 ordre
 0
-# Ordre 1, 2, 0 (0 => 2 stabilisé)
+# Ordre 2, 1, 0 (0 => 2 stabilisé)
 
 norm_l2
-yes 10000 Results/ref.dat
+no 10000 Results/ref.dat
 #no or yes Results/solRef.dat N_solE
 
 results

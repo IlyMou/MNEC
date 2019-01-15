@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     time_scheme = new SSPRK2();
   else if (data_file->Get_scheme() == "RK2")
     time_scheme = new RK2();
-  if (data_file->Get_scheme() == "RK4")
+  else if (data_file->Get_scheme() == "RK4")
     time_scheme = new RK4();
   else
     time_scheme = new EulerScheme();

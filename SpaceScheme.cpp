@@ -530,21 +530,40 @@ void SpaceScheme::ComputeError(const Eigen::MatrixXd& sol)
 	MatrixXd exact_sol;
 	exact_sol = ExactSolution();
 
+	// --- Verification ---
+	string name_file = _results + "/bruh.dat";
+	ofstream bruh;
+	bruh.open(name_file, ios::out);
+	bruh.precision(7);
+
+	bruh << 0. << " " << _Ul(0) << " " << _Ul(1)/_Ul(0) << " " << _Ul(2)/_Ul(0)
+															<< " " << _Ul(3)/_Ul(0) << " " << _Ul(4)/_Ul(0) << endl;
+	for (size_t i = 0; i < N; i++)
+		bruh << (i+0.5)*dx << " " << exact_sol(0,i) << " " << exact_sol(1,i) << " " << exact_sol(2,i)
+																								<< " " << exact_sol(3,i) << " " << exact_sol(4,i) << endl;
+  bruh << 1. << " " << _Ur(0) << " " << _Ur(1)/_Ur(0) << " " << _Ur(2)/_Ur(0)
+															<< " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0);
+	bruh.close();
+	// --------------------
+
 	error.setZero(5);; eL2.setZero(5);
 	k=0;
 	for (int i = 0 ; i < N ; i++)
 	{
 		if((i+1)*dx <= (k+1)*_dx)
 		{
-			for(int j = 0; j<5; j++)
-				error(j) += dx*(exact_sol(j,i) - sol(j,k))*(exact_sol(j,i) - sol(j,k));
+			error(0) += dx*(exact_sol(0,i) - sol(0,k))*(exact_sol(0,i) - sol(0,k));
+			for(int j = 1; j<5; j++)
+				error(j) += dx*(exact_sol(j,i) - sol(j,k)/sol(0,k))*(exact_sol(j,i) - sol(j,k)/sol(0,k));
 		}
 		else
 		{
-			for(int j = 0; j<5; j++)
+			error(0) += ((k+1)*_dx  - i*dx)*(exact_sol(0,i) - sol(0,k))*(exact_sol(0,i) - sol(0,k));
+			error(0) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(0,i) - sol(0,k+1))*(exact_sol(0,i) - sol(0,k+1));
+			for(int j = 1; j<5; j++)
 			{
-				error(j) += ((k+1)*_dx  - i*dx)*(exact_sol(j,i) - sol(j,k))*(exact_sol(j,i) - sol(j,k));
-				error(j) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(j,i) - sol(j,k+1))*(exact_sol(j,i) - sol(j,k+1));
+				error(j) += ((k+1)*_dx  - i*dx)*(exact_sol(j,i) - sol(j,k)/sol(0,k))*(exact_sol(j,i) - sol(j,k)/sol(0,k));
+				error(j) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(j,i) - sol(j,k+1)/sol(0,k+1))*(exact_sol(j,i) - sol(j,k+1)/sol(0,k+1));
 			}
 			k++;
 		}
