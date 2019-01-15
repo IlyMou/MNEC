@@ -35,6 +35,11 @@ void TimeScheme::SaveSolution()
   _pb->SaveSol(_sol);
 }
 
+void TimeScheme::ComputeError()
+{
+  _pb->ComputeError(_sol);
+}
+
 // Renvoie _sol (pratique pour vérifier la résolution)
 const MatrixXd & TimeScheme::GetIterateSolution() const
 {

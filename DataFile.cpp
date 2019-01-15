@@ -112,6 +112,8 @@ void DataFile::ReadDataFile()
     if (file_line.find("norm_l2") != std::string::npos)
     {
       data_file >> _norm_l2; _if_norm_l2 = true;
+      if(_norm_l2=="yes")
+        data_file >> _N_solE >> _file_solEx;
     }
   }
 

@@ -1,5 +1,5 @@
 N_mesh
-1000
+200
 
 t0
 0
@@ -23,12 +23,12 @@ rusanov
 # rusanov, wrs = 5-Wave Relaxation Solver
 
 ordre
-0
+1
 # Ordre 1, 2, 0 (0 => 2 stabilisé)
 
 norm_l2
-no
-#yes or no
+yes 10000 Results/ref.dat
+#no or yes Results/solRef.dat N_solE
 
 results
-Results/
+Results/test

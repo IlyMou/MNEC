@@ -40,7 +40,7 @@ class SpaceScheme {
 	  Eigen::MatrixXd InitialCondition();
 
 	  // Solution exacte au centre des triangles
-	  Eigen::MatrixXd ExactSolution(double t);
+	  Eigen::MatrixXd ExactSolution();
 
 	  // Sauvegarde la solution
 	  void SaveSol(const Eigen::MatrixXd& sol, int n);
@@ -49,7 +49,7 @@ class SpaceScheme {
 		void SaveSol(const Eigen::MatrixXd& sol);
 
 		// Calcul de l'erreur en norme L2
-		void ComputeError(const double t);
+		void ComputeError(const Eigen::MatrixXd& sol);
 
 		// Renvoie la valeur maximal de vitesse
 		double& Getbmax() {return _bmax;};

@@ -71,25 +71,25 @@ int main(int argc, char** argv)
   // Fin du chrono
   auto finish = chrono::high_resolution_clock::now();
   double t = chrono::duration_cast<chrono::milliseconds>(finish-start).count();
-  t = t*0.001; bool hmin false;
-  cout << "Cela a pris ";
-  if(t%3600>=0){
-    cout << floor(t/3600) << "h ";
-    t = t - floor(t/3600)*3600;
+  int timeC = floor(t*0.001); bool hmin = false;
+  cout << "Time to compute : ";
+  if(timeC/3600>=1){
+    cout << floor(timeC/3600) << " h ";
+    timeC = timeC - floor(timeC/3600)*3600;
     hmin = true;
   }
-  if(t%60>=0){
-    cout << floor(t/60) << "min ";
-    t = t - floor(t/60)*60;
+  if(timeC/60>=1){
+    cout << floor(timeC/60) << " min ";
+    timeC = timeC - floor(timeC/60)*60;
     hmin = true;
   }
-  if(hmin) cout << "et ";
-  cout << floor(t) << " seconds" << endl;
+  if(hmin) cout << "and ";
+  cout << floor(timeC)+1 << " seconds" << endl;
   // ---------------------------------------------------------------------------
 
 
   //------------------- Si on connait la solution exacte -----------------------
-  if (data_file->Get_numerical_flux_choice() == "riemann")
+  if ((data_file->Get_initial_condition_choice() == "riemann")&&(data_file->Get_norm_l2()=="yes"))
   {
     time_scheme->ComputeError();
   }

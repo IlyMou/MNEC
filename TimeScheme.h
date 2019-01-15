@@ -28,6 +28,8 @@ class TimeScheme
     void SaveSolution(int n);
     // Enregistre la derniere solution un fichier
     void SaveSolution();
+    // Calcul l'erreur
+    void ComputeError();
     // Une étape du schéma en temps
     virtual void Advance() = 0;
     // Permet de récupérer _sol

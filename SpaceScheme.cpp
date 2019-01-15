@@ -137,16 +137,16 @@ VectorXd Rusanov1::Flux_R(const Eigen::MatrixXd& sol, int i)
 	if (i!=_N-1)
 	{
 		Fi(0) = sol(1,i+1);
-		Fi(1) = sol(1,i+1)*sol(1,i+1)/sol(0,i+1) + 0.5*g*sol(0,i+1)*sol(0,i+1) - sol(3,i+1)*sol(3,i+1)/sol(0,i+1);
-		Fi(2) = sol(1,i+1)*sol(2,i+1)/sol(0,i+1) - sol(3,i+1)*sol(4,i+1)/sol(0,i+1);
+		Fi(1) = ( sol(1,i+1)*sol(1,i+1) - sol(3,i+1)*sol(3,i+1) )/sol(0,i+1) + 0.5*g*sol(0,i+1)*sol(0,i+1) ;
+		Fi(2) = ( sol(1,i+1)*sol(2,i+1) - sol(3,i+1)*sol(4,i+1) )/sol(0,i+1);
 		Fi(3) = sol(3,i+1)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( sol(1,i+1)*sol(4,i+1) - sol(2,i+1)*sol(3,i+1) )/sol(0,i+1) + sol(3,i+1)*(sol(2,i)/sol(0,i));
 	}
 	else
 	{
 		Fi(0) = _Ur(1);
-		Fi(1) = _Ur(1)*_Ur(1)/_Ur(0) + 0.5*g*_Ur(0)*_Ur(0) - _Ur(3)*_Ur(3)/_Ur(0);
-		Fi(2) = _Ur(1)*_Ur(2)/_Ur(0) - _Ur(3)*_Ur(4)/_Ur(0);
+		Fi(1) = ( _Ur(1)*_Ur(1) - _Ur(3)*_Ur(3) )/_Ur(0) + 0.5*g*_Ur(0)*_Ur(0);
+		Fi(2) = ( _Ur(1)*_Ur(2) - _Ur(3)*_Ur(4) )/_Ur(0);
 		Fi(3) = _Ur(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( _Ur(1)*_Ur(4) - _Ur(2)*_Ur(3) )/_Ur(0) + _Ur(3)*(sol(2,i)/sol(0,i));
 	}
@@ -162,16 +162,16 @@ VectorXd Rusanov1::Flux_L(const Eigen::MatrixXd& sol, int i)
 	if (i!=0)
 	{
 		Fi(0) = sol(1,i-1);
-		Fi(1) = sol(1,i-1)*sol(1,i-1)/sol(0,i-1) + 0.5*g*sol(0,i-1)*sol(0,i-1) - sol(3,i-1)*sol(3,i-1)/sol(0,i-1);
-		Fi(2) = sol(1,i-1)*sol(2,i-1)/sol(0,i-1) - sol(3,i-1)*sol(4,i-1)/sol(0,i-1);
+		Fi(1) = ( sol(1,i-1)*sol(1,i-1) - sol(3,i-1)*sol(3,i-1) )/sol(0,i-1) + 0.5*g*sol(0,i-1)*sol(0,i-1);
+		Fi(2) = ( sol(1,i-1)*sol(2,i-1) - sol(3,i-1)*sol(4,i-1) )/sol(0,i-1);
 		Fi(3) = sol(3,i-1)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( sol(1,i-1)*sol(4,i-1) - sol(2,i-1)*sol(3,i-1) )/sol(0,i-1) + sol(3,i-1)*(sol(2,i)/sol(0,i));
 	}
 	else
 	{
 		Fi(0) = _Ul(1);
-		Fi(1) = _Ul(1)*_Ul(1)/_Ul(0) + 0.5*g*_Ul(0)*_Ul(0) - _Ul(3)*_Ul(3)/_Ul(0);
-		Fi(2) = _Ul(1)*_Ul(2)/_Ul(0) - _Ul(3)*_Ul(4)/_Ul(0);
+		Fi(1) = ( _Ul(1)*_Ul(1) - _Ul(3)*_Ul(3) )/_Ul(0) + 0.5*g*_Ul(0)*_Ul(0);
+		Fi(2) = ( _Ul(1)*_Ul(2) - _Ul(3)*_Ul(4) )/_Ul(0);
 		Fi(3) = _Ul(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( _Ul(1)*_Ul(4) - _Ul(2)*_Ul(3) )/_Ul(0) + _Ul(3)*(sol(2,i)/sol(0,i));
 	}
@@ -259,16 +259,16 @@ VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
 		solt = 0.5*( 3*sol.col(i+1)-sol.col(i+2) );
 
 		Fi(0) = solt(1);
-		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0) ;
+		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 
 		solt = 0.5*( sol.col(i+1)+sol.col(i) );
 
 		Fi(0) += solt(1);
-		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0) ;
+		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 	}
@@ -277,16 +277,16 @@ VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
 		solt = 0.5*( 3*sol.col(i+1)-_Ur);
 
 		Fi(0) = solt(1);
-		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 
 		solt = 0.5*( sol.col(i+1)+sol.col(i) );
 
 		Fi(0) += solt(1);
-		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 	}
@@ -295,16 +295,16 @@ VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
 		solt = _Ur;
 
 		Fi(0) = solt(1);
-		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 
 		solt = 0.5*( _Ur+sol.col(i) );
 
 		Fi(0) += solt(1);
-		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 	}
@@ -322,16 +322,16 @@ VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
 		solt = 0.5*( 3*sol.col(i)-sol.col(i+1) );
 
 		Fi(0) = solt(1);
-		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 
 		solt = 0.5*( sol.col(i-1)+sol.col(i) );
 
 		Fi(0) += solt(1);
-		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 	}
@@ -340,16 +340,16 @@ VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
 		solt = 0.5*( 3*sol.col(i)-sol.col(i+1) );
 
 		Fi(0) = solt(1);
-		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 
 		solt = 0.5*( _Ul+sol.col(i) );
 
 		Fi(0) += solt(1);
-		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 	}
@@ -358,16 +358,16 @@ VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
 		solt = 0.5*( 3*sol.col(i)-_Ur );
 
 		Fi(0) = solt(1);
-		Fi(1) = solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) = solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 
 		solt = 0.5*( sol.col(i-1)+sol.col(i) );
 
 		Fi(0) += solt(1);
-		Fi(1) += solt(1)*solt(1)/solt(0) + 0.5*g*solt(0)*solt(0) - solt(3)*solt(3)/solt(0);
-		Fi(2) += solt(1)*solt(2)/solt(0) - solt(3)*solt(4)/solt(0);
+		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
 		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
 		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
 	}
@@ -397,14 +397,14 @@ double Rusanov2::limPente(const Eigen::MatrixXd& sol, int var, int i)
 		w = _Ur(var);
 	}
 
-	if((abs(v-u)<1e-6)&&(abs(w-v)<1e-6))
+	if((abs(v-u)<1e-12)&&(abs(w-v)<1e-12))
 		theta = 1;
-	else if(abs(w-v)<2.5e-7)
+	else if(abs(w-v)<5e-13)
 		theta = 0;
 	else
 		theta = (v-u)/(w-u);
 
-	if((theta<0.25)||(theta >4))
+	if((theta<0.5)||(theta >2))
 		theta = 0;
 
 	phi = (theta + abs(theta))/(1.+theta);
@@ -439,21 +439,6 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 
 }
 
-// Solution exacte au centre des triangles
-MatrixXd SpaceScheme::ExactSolution(const double t)
-{
-	MatrixXd exact_sol(5,_N);
-	for (int i = 0 ; i < _N ; i++)
-	{
-		exact_sol(0,i) = 0;
-		exact_sol(1,i) = 0;
-		exact_sol(2,i) = 0;
-		exact_sol(3,i) = 0;
-		exact_sol(4,i) = 0;
-	}
-	return exact_sol;
-}
-
 // Sauvegarde la solution
 void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol, int n)
 {
@@ -466,7 +451,7 @@ void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol, int n)
 
 	ofstream solution;
 	solution.open(name_file, ios::out);
-	solution.precision(7);
+	solution.precision(14);
 
 	for (size_t i = 0; i < _N; i++)
 	{
@@ -477,12 +462,6 @@ void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol, int n)
 	}
   solution << endl;
 	solution.close();
-
-	if (_norm_l2 ==  "yes")
-	{
-		if (n%10 == 0)
-		cout << "Error L2" << endl;
-	}
 }
 
 // Sauvegarde la derniere solution
@@ -506,15 +485,68 @@ void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol)
 																							<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
 
   solution << 1. << " " << _Ur(0) << " " << _Ur(1)/_Ur(0) << " " << _Ur(2)/_Ur(0)
-																	<< " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0) << endl;
+																	<< " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0);
 
 	solution.close();
 }
 
-void SpaceScheme::ComputeError(const double t)
+// Solution exacte au centre des triangles
+MatrixXd SpaceScheme::ExactSolution()
 {
-	double error = 0;
-	cout << t*error << endl;
+	int N = _data_file->Get_N_solE();
+	double x,h,u,v,a,b;
+	string name_file = _data_file->Get_file_solEx();
+
+	ifstream solutionE;
+	solutionE.open(name_file.data());
+	if (!solutionE.is_open())
+	{
+		cout << "Unable to open file " << name_file << endl;
+		abort();
+	}
+
+	MatrixXd exact_sol(5,N);
+	solutionE >> x >> h >> u >> v >> a >> b;
+	for (int i = 0 ; i < N ; i++)
+	{
+		solutionE >> x >> h >> u >> v >> a >> b;
+		exact_sol(0,i) = h;
+		exact_sol(1,i) = u;
+		exact_sol(2,i) = v;
+		exact_sol(3,i) = a;
+		exact_sol(4,i) = b;
+	}
+
+	solutionE.close();
+
+	return exact_sol;
+}
+
+void SpaceScheme::ComputeError(const Eigen::MatrixXd& sol)
+{
+	int N = _data_file->Get_N_solE();
+	double error = 0, dx = 1./N;
+	MatrixXd exact_sol;
+	exact_sol = ExactSolution();
+
+	ofstream solution;
+	solution.open("Results/bruh.dat", ios::out);
+	solution.precision(7);
+
+
+	solution << 0. << " " << _Ul(0) << " " << _Ul(1)/_Ul(0) << " " << _Ul(2)/_Ul(0)
+								 << " " << _Ul(3)/_Ul(0) << " " << _Ul(4)/_Ul(0) << endl;
+
+	for (size_t i = 0; i < N; i++)
+		solution << (i+0.5)*dx << " " << exact_sol(0,i)
+													 << " " << exact_sol(1,i) << " " << exact_sol(2,i)
+													 << " " << exact_sol(3,i) << " " << exact_sol(4,i) << endl;
+
+	solution << 1. << " " << _Ur(0) << " " << _Ur(1)/_Ur(0) << " " << _Ur(2)/_Ur(0)
+								 << " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0);
+
+	solution.close();
+	cout << "Error L2 :" << error << endl;
 }
 
 #define _SCPACESCHEME_CPP
