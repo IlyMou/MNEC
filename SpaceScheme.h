@@ -71,6 +71,10 @@ class Rusanov1 : public SpaceScheme
 
 class Rusanov2 : public SpaceScheme
 {
+	private:
+		bool _stab;
+		SpaceScheme* _rO1;
+
   public:
 		// Constructeur
 		Rusanov2(DataFile* data_file);

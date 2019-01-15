@@ -60,6 +60,36 @@ MatrixXd SpaceScheme::InitialCondition()
 	return _U;
 }
 
+double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
+{
+	double b=0,bt=0;
+	double ul, ur, al, ar, hl, hr;
+	if ((i!=0)&&(i!=_N))
+	{
+		ul = sol(1,i-1)/sol(0,i-1); ur = sol(1,i)/sol(0,i);
+		al = sol(3,i-1)/sol(0,i-1);	ar = sol(3,i)/sol(0,i);
+		hl = sol(0,i-1);            hr = sol(0,i);
+	}
+	else if (i==0)
+	{
+		ul = _Ul(1)/_Ul(0); ur = sol(1,0)/sol(0,0);
+		al = _Ul(3)/_Ul(0);	ar = sol(3,0)/sol(0,0);
+		hl = _Ul(0);        hr = sol(0,0);
+	}
+	else
+	{
+		ul = sol(1,_N-1)/sol(0,_N-1); ur = _Ur(1)/_Ur(0);
+		al = sol(3,_N-1)/sol(0,_N-1);	ar = _Ur(3)/_Ur(0);
+		hl = sol(0,_N-1);             hr = _Ur(0);
+	}
+
+	b  = max(abs(ul-sqrt(al*al+g*hl)),ul+sqrt(al*al+g*hl));
+	bt = max(abs(ur-sqrt(ar*ar+g*hr)),ur+sqrt(ar*ar+g*hr));
+	b  = max(b, bt);
+
+	return b;
+}
+
 
 // -----------------------------------------
 //   Rusanov ordre 1
@@ -149,42 +179,19 @@ VectorXd Rusanov1::Flux_L(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
-{
-	double b=0,bt=0;
-	double ul, ur, al, ar, hl, hr;
-	if ((i!=0)&&(i!=_N))
-	{
-		ul = sol(1,i-1)/sol(0,i-1); ur = sol(1,i)/sol(0,i);
-		al = sol(3,i-1)/sol(0,i-1);	ar = sol(3,i)/sol(0,i);
-		hl = sol(0,i-1);            hr = sol(0,i);
-	}
-	else if (i==0)
-	{
-		ul = _Ul(1)/_Ul(0); ur = sol(1,0)/sol(0,0);
-		al = _Ul(3)/_Ul(0);	ar = sol(3,0)/sol(0,0);
-		hl = _Ul(0);        hr = sol(0,0);
-	}
-	else
-	{
-		ul = sol(1,_N-1)/sol(0,_N-1); ur = _Ur(1)/_Ur(0);
-		al = sol(3,_N-1)/sol(0,_N-1);	ar = _Ur(3)/_Ur(0);
-		hl = sol(0,_N-1);             hr = _Ur(0);
-	}
-
-	b  = max(abs(ul-sqrt(al*al+g*hl)),ul+sqrt(al*al+g*hl));
-	bt = max(abs(ur-sqrt(ar*ar+g*hr)),ur+sqrt(ar*ar+g*hr));
-	b  = max(b, bt);
-
-	return b;
-}
-
 
 // -----------------------------------------
 //   Rusanov ordre 1
 // -----------------------------------------
 Rusanov2::Rusanov2(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
-{}
+{
+	if(data_file->Get_order() == 0)
+	{
+		_stab = true;
+		_rO1 = new Rusanov1(data_file);
+		_rO1->InitialCondition();
+	}
+}
 
 // Construit le vecteur f = F(u,t) (EDO : du/dt = F(u,t))
 void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
@@ -224,6 +231,22 @@ void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
 			_bmax = br;
 	}
 	_F = -_N*_F;
+
+
+	if(_stab)
+	{
+		double phi;
+		MatrixXd F;
+		_rO1->BuildF(t, sol);
+		F = _rO1->GetF();
+		for(int j = 0; j<_N; j++)
+		{
+			for(int i = 0; i<5; i++){
+				phi = limPente(sol,i,j);
+				_F(i,j) = (1-phi)*F(i,j) + phi*_F(i,j);
+			}
+		}
+	}
 }
 
 VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
