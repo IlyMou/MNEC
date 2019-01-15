@@ -71,15 +71,27 @@ int main(int argc, char** argv)
   // Fin du chrono
   auto finish = chrono::high_resolution_clock::now();
   double t = chrono::duration_cast<chrono::milliseconds>(finish-start).count();
-  // Affichage du résultat
-  cout << "Cela a pris "<< t*0.001 << " seconds" << endl;
+  t = t*0.001; bool hmin false;
+  cout << "Cela a pris ";
+  if(t%3600>=0){
+    cout << floor(t/3600) << "h ";
+    t = t - floor(t/3600)*3600;
+    hmin = true;
+  }
+  if(t%60>=0){
+    cout << floor(t/60) << "min ";
+    t = t - floor(t/60)*60;
+    hmin = true;
+  }
+  if(hmin) cout << "et ";
+  cout << floor(t) << " seconds" << endl;
   // ---------------------------------------------------------------------------
 
 
   //------------------- Si on connait la solution exacte -----------------------
   if (data_file->Get_numerical_flux_choice() == "riemann")
   {
-    pb->ComputeError(data_file->Get_tfinal());
+    time_scheme->ComputeError();
   }
   // ---------------------------------------------------------------------------
 
