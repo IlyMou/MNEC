@@ -524,29 +524,42 @@ MatrixXd SpaceScheme::ExactSolution()
 
 void SpaceScheme::ComputeError(const Eigen::MatrixXd& sol)
 {
-	int N = _data_file->Get_N_solE();
-	double error = 0, dx = 1./N;
+	int N = _data_file->Get_N_solE(), k;
+	double dx = 1./N, _dx = 1./_N;
+	VectorXd error(5), eL2(5);
 	MatrixXd exact_sol;
 	exact_sol = ExactSolution();
 
-	ofstream solution;
-	solution.open("Results/bruh.dat", ios::out);
-	solution.precision(7);
+	error.setZero(5);; eL2.setZero(5);
+	k=0;
+	for (int i = 0 ; i < N ; i++)
+	{
+		if((i+1)*dx <= (k+1)*_dx)
+		{
+			for(int j = 0; j<5; j++)
+				error(j) += dx*(exact_sol(j,i) - sol(j,k))*(exact_sol(j,i) - sol(j,k));
+		}
+		else
+		{
+			for(int j = 0; j<5; j++)
+			{
+				error(j) += ((k+1)*_dx  - i*dx)*(exact_sol(j,i) - sol(j,k))*(exact_sol(j,i) - sol(j,k));
+				error(j) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(j,i) - sol(j,k+1))*(exact_sol(j,i) - sol(j,k+1));
+			}
+			k++;
+		}
 
+		for(int j=0; j<5; j++)
+			eL2(j) += dx*exact_sol(j,i)*exact_sol(j,i);
+	}
 
-	solution << 0. << " " << _Ul(0) << " " << _Ul(1)/_Ul(0) << " " << _Ul(2)/_Ul(0)
-								 << " " << _Ul(3)/_Ul(0) << " " << _Ul(4)/_Ul(0) << endl;
-
-	for (size_t i = 0; i < N; i++)
-		solution << (i+0.5)*dx << " " << exact_sol(0,i)
-													 << " " << exact_sol(1,i) << " " << exact_sol(2,i)
-													 << " " << exact_sol(3,i) << " " << exact_sol(4,i) << endl;
-
-	solution << 1. << " " << _Ur(0) << " " << _Ur(1)/_Ur(0) << " " << _Ur(2)/_Ur(0)
-								 << " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0);
-
-	solution.close();
-	cout << "Error L2 :" << error << endl;
+	cout << "Error L2 : " << sqrt(error(0) + error(1) + error(2) + error(3) + error(4))
+													/sqrt(eL2(0) + eL2(1) + eL2(2) + eL2(3) + eL2(4)) << endl;
+	cout << "  -- h = " << sqrt(error(0))/sqrt(eL2(0)) << endl;
+	cout << "  -- u = " << sqrt(error(1))/sqrt(eL2(1)) << endl;
+	cout << "  -- v = " << sqrt(error(2))/sqrt(eL2(2)) << endl;
+	cout << "  -- a = " << sqrt(error(3))/sqrt(eL2(3)) << endl;
+	cout << "  -- b = " << sqrt(error(4))/sqrt(eL2(4)) << endl;
 }
 
 #define _SCPACESCHEME_CPP
