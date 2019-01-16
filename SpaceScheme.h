@@ -9,11 +9,11 @@
 class SpaceScheme {
 	protected:
 		int _N;
-		double _bmax;
+		double _bmax, _x0;
 		const std::string _results;
 
 		Eigen::MatrixXd _U, _F;
-		Eigen::VectorXd _Ul, _Ur;
+		Eigen::VectorXd _Ul, _Ur, Ul, Ur;
  		std::string _norm_l2;
 
 		DataFile* _data_file;

@@ -1,5 +1,5 @@
 N_mesh
-200
+500
 
 t0
 0
@@ -9,12 +9,15 @@ dt
 0.00001
 
 scheme
-SSPRK2
+ExplicitEuler
 # ExplicitEuler = Explicit Euler,SPPRK2 = SSP-Runge Kutta 2,
 # RK2 = Runge Kutta 2, RK4 = Runge Kutta 4
 
 initial_condition
-riemann 0.5 1 0.2 0.7 0.5 0.4 0.5 -0.1 0.3 1 0.1
+riemann 0.5 1.4 0.2 0.6 1 0.4 0.2 -0.1 0.3 1.2 0.1
+# riemann 0.5 1 0.2 0.7 0.5 0.4 0.5 -0.1 0.3 1 0.1
+# riemann 0.5 1.4 0.2 0.6 1 0.4 0.2 -0.1 0.3 1.2 0.1
+# riemann 0.5 2 1 2.5 0.8 0.4 0 0 0 0 0
 # riemann x0 h_l u_l v_l a_l b_l h_r u_r v_r a_r b_r
 # gaussian x0 y0 a, rectangular x0 y0 b
 
@@ -23,7 +26,7 @@ rusanov
 # rusanov, wrs = 5-Wave Relaxation Solver
 
 ordre
-0
+2
 # Ordre 2, 1, 0 (0 => 2 stabilisé)
 
 norm_l2
@@ -31,4 +34,4 @@ no 10000 Results/ref.dat
 #no or yes Results/solRef.dat N_solE
 
 results
-Results/test
+Results/Cas3

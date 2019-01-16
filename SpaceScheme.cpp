@@ -14,8 +14,9 @@ _results(data_file->Get_results()), _data_file(data_file)
 	system(("mkdir -p ./" + _results).c_str());
 	_U.resize(5, _N);
 	_F.resize(5, _N);
-	_Ul.resize(5);
-	_Ur.resize(5);
+	_Ul.resize(5); Ul.resize(5);
+	_Ur.resize(5); Ur.resize(5);
+
 }
 
 // Construit la condition initiale au centre des triangles
@@ -24,7 +25,7 @@ MatrixXd SpaceScheme::InitialCondition()
 	double dx = 1./_N;
 	if(_data_file->Get_initial_condition_choice()=="riemann")
 	{
-		double x0 = _data_file->Get_param_x0();
+		_x0 = _data_file->Get_param_x0();
 		double hl = _data_file->Get_param_a();
 		double ul = _data_file->Get_param_b();
 		double vl = _data_file->Get_param_c();
@@ -35,11 +36,13 @@ MatrixXd SpaceScheme::InitialCondition()
 		double vr = _data_file->Get_param_h();
 		double ar = _data_file->Get_param_i();
 		double br = _data_file->Get_param_j();
+		Ul << hl, ul, vl, al, bl;
+		Ur << hr, ur, vr, ar, br;
 		_Ul << hl, ul*hl, vl*hl, al*hl, bl*hl;
 		_Ur << hr, ur*hr, vr*hr, ar*hr, br*hr;
 		for (int i = 0 ; i < _N ; i++)
 		{
-			if((0.5+i)*dx<=x0)
+			if((0.5+i)*dx<=_x0)
 			{
 				_U(0,i) = hl;
 				_U(1,i) = ul*hl;
@@ -66,21 +69,52 @@ double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
 	double ul, ur, al, ar, hl, hr;
 	if ((i!=0)&&(i!=_N))
 	{
-		ul = sol(1,i-1)/sol(0,i-1); ur = sol(1,i)/sol(0,i);
-		al = sol(3,i-1)/sol(0,i-1);	ar = sol(3,i)/sol(0,i);
-		hl = sol(0,i-1);            hr = sol(0,i);
+		hl = sol(0,i-1); hr = sol(0,i);
+		if((abs(sol(0,i))>1e-14)&&(abs(sol(0,i-1))>1e-14))
+		{
+			ul = sol(1,i-1)/sol(0,i-1); ur = sol(1,i)/sol(0,i);
+			al = sol(3,i-1)/sol(0,i-1);	ar = sol(3,i)/sol(0,i);
+		}
+		if (abs(sol(0,i))<1e-14)
+		{
+			ur = Ur(1);
+			ar = Ur(3);
+		}
+		if (abs(sol(0,i-1))<1e-14)
+		{
+			ul = Ul(1);
+			al = Ul(3);
+		}
 	}
 	else if (i==0)
 	{
-		ul = _Ul(1)/_Ul(0); ur = sol(1,0)/sol(0,0);
-		al = _Ul(3)/_Ul(0);	ar = sol(3,0)/sol(0,0);
-		hl = _Ul(0);        hr = sol(0,0);
+		hl = Ul(0); hr = sol(0,0);
+		if(abs(hr)>1e-14)
+		{
+			ur = sol(1,0)/sol(0,0);
+		  ar = sol(3,0)/sol(0,0);
+		}
+		else
+		{
+			ur = Ur(1);
+			ar = Ur(3);
+		}
+		ul = Ul(1); al = Ul(3);
 	}
 	else
 	{
-		ul = sol(1,_N-1)/sol(0,_N-1); ur = _Ur(1)/_Ur(0);
-		al = sol(3,_N-1)/sol(0,_N-1);	ar = _Ur(3)/_Ur(0);
-		hl = sol(0,_N-1);             hr = _Ur(0);
+		hl = sol(0,_N-1); hr = Ur(0);
+		if(abs(hl)>1e-14)
+		{
+			ul = sol(1,_N-1)/sol(0,_N-1);
+			al = sol(3,_N-1)/sol(0,_N-1);
+		}
+		else
+		{
+			ul = Ul(1);
+			al = Ul(3);
+		}
+		ur = Ur(1); ar = Ur(3);
 	}
 
 	b  = max(abs(ul-sqrt(al*al+g*hl)),ul+sqrt(al*al+g*hl));
@@ -132,23 +166,34 @@ void Rusanov1::BuildF(const double& t, const Eigen::MatrixXd& sol)
 VectorXd Rusanov1::Flux_R(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi;
-	Fi.resize(5);
+	Fi.setZero(5);
 
 	if (i!=_N-1)
 	{
-		Fi(0) = sol(1,i+1);
-		Fi(1) = ( sol(1,i+1)*sol(1,i+1) - sol(3,i+1)*sol(3,i+1) )/sol(0,i+1) + 0.5*g*sol(0,i+1)*sol(0,i+1) ;
-		Fi(2) = ( sol(1,i+1)*sol(2,i+1) - sol(3,i+1)*sol(4,i+1) )/sol(0,i+1);
-		Fi(3) = sol(3,i+1)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( sol(1,i+1)*sol(4,i+1) - sol(2,i+1)*sol(3,i+1) )/sol(0,i+1) + sol(3,i+1)*(sol(2,i)/sol(0,i));
+		if(abs(sol(0,i+1))>1e-14)
+		{
+			Fi(0) = sol(1,i+1);
+			Fi(1) = ( sol(1,i+1)*sol(1,i+1) - sol(3,i+1)*sol(3,i+1) )/sol(0,i+1) + 0.5*g*sol(0,i+1)*sol(0,i+1) ;
+			Fi(2) = ( sol(1,i+1)*sol(2,i+1) - sol(3,i+1)*sol(4,i+1) )/sol(0,i+1);
+			Fi(4) = ( sol(1,i+1)*sol(4,i+1) - sol(2,i+1)*sol(3,i+1) )/sol(0,i+1);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = sol(3,i+1)*(sol(1,i)/sol(0,i));
+			Fi(4) += sol(3,i+1)*(sol(2,i)/sol(0,i));
+		}
 	}
 	else
 	{
 		Fi(0) = _Ur(1);
-		Fi(1) = ( _Ur(1)*_Ur(1) - _Ur(3)*_Ur(3) )/_Ur(0) + 0.5*g*_Ur(0)*_Ur(0);
-		Fi(2) = ( _Ur(1)*_Ur(2) - _Ur(3)*_Ur(4) )/_Ur(0);
-		Fi(3) = _Ur(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( _Ur(1)*_Ur(4) - _Ur(2)*_Ur(3) )/_Ur(0) + _Ur(3)*(sol(2,i)/sol(0,i));
+		Fi(1) = ( Ur(1)*Ur(1) - Ur(3)*Ur(3) )*Ur(0) + 0.5*g*_Ur(0)*_Ur(0);
+		Fi(2) = ( Ur(1)*Ur(2) - Ur(3)*Ur(4) )*Ur(0);
+		Fi(4) = ( Ur(1)*Ur(4) - Ur(2)*Ur(3) )*Ur(0);
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = _Ur(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += _Ur(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 
 	return Fi;
@@ -157,23 +202,34 @@ VectorXd Rusanov1::Flux_R(const Eigen::MatrixXd& sol, int i)
 VectorXd Rusanov1::Flux_L(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi;
-	Fi.resize(5);
+	Fi.setZero(5);
 
 	if (i!=0)
 	{
-		Fi(0) = sol(1,i-1);
-		Fi(1) = ( sol(1,i-1)*sol(1,i-1) - sol(3,i-1)*sol(3,i-1) )/sol(0,i-1) + 0.5*g*sol(0,i-1)*sol(0,i-1);
-		Fi(2) = ( sol(1,i-1)*sol(2,i-1) - sol(3,i-1)*sol(4,i-1) )/sol(0,i-1);
-		Fi(3) = sol(3,i-1)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( sol(1,i-1)*sol(4,i-1) - sol(2,i-1)*sol(3,i-1) )/sol(0,i-1) + sol(3,i-1)*(sol(2,i)/sol(0,i));
+		if(abs(sol(0,i-1))>1e-14)
+		{
+			Fi(0) = sol(1,i-1);
+			Fi(1) = ( sol(1,i-1)*sol(1,i-1) - sol(3,i-1)*sol(3,i-1) )/sol(0,i-1) + 0.5*g*sol(0,i-1)*sol(0,i-1);
+			Fi(2) = ( sol(1,i-1)*sol(2,i-1) - sol(3,i-1)*sol(4,i-1) )/sol(0,i-1);
+			Fi(4) = ( sol(1,i-1)*sol(4,i-1) - sol(2,i-1)*sol(3,i-1) )/sol(0,i-1);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = sol(3,i-1)*(sol(1,i)/sol(0,i));
+			Fi(4) += sol(3,i-1)*(sol(2,i)/sol(0,i));
+		}
 	}
 	else
 	{
 		Fi(0) = _Ul(1);
-		Fi(1) = ( _Ul(1)*_Ul(1) - _Ul(3)*_Ul(3) )/_Ul(0) + 0.5*g*_Ul(0)*_Ul(0);
-		Fi(2) = ( _Ul(1)*_Ul(2) - _Ul(3)*_Ul(4) )/_Ul(0);
-		Fi(3) = _Ul(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( _Ul(1)*_Ul(4) - _Ul(2)*_Ul(3) )/_Ul(0) + _Ul(3)*(sol(2,i)/sol(0,i));
+		Fi(1) = ( Ul(1)*Ul(1) - Ul(3)*Ul(3) )*Ul(0) + 0.5*g*_Ul(0)*_Ul(0);
+		Fi(2) = ( Ul(1)*Ul(2) - Ul(3)*Ul(4) )*Ul(0);
+		Fi(4) = ( Ul(1)*Ul(4) - Ul(2)*Ul(3) )*Ul(0);
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = _Ul(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += _Ul(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 
 	return Fi;
@@ -252,61 +308,98 @@ void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
 VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi, solt;
-	Fi.resize(5);
+	Fi.setZero(5);
 
 	if (i<_N-2)
 	{
 		solt = 0.5*( 3*sol.col(i+1)-sol.col(i+2) );
-
-		Fi(0) = solt(1);
-		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0) ;
-		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) = solt(1);
+			Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0) ;
+			Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 
 		solt = 0.5*( sol.col(i+1)+sol.col(i) );
-
-		Fi(0) += solt(1);
-		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0) ;
-		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) += solt(1);
+			Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0) ;
+			Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 	else if (i==_N-2)
 	{
 		solt = 0.5*( 3*sol.col(i+1)-_Ur);
-
-		Fi(0) = solt(1);
-		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) = solt(1);
+			Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 
 		solt = 0.5*( sol.col(i+1)+sol.col(i) );
-
-		Fi(0) += solt(1);
-		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) += solt(1);
+			Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 	else
 	{
 		solt = _Ur;
-
-		Fi(0) = solt(1);
-		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) = solt(1);
+			Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 
 		solt = 0.5*( _Ur+sol.col(i) );
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) += solt(1);
+			Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
 
-		Fi(0) += solt(1);
-		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 
 	return Fi;
@@ -315,61 +408,97 @@ VectorXd Rusanov2::Flux_R(const Eigen::MatrixXd& sol, int i)
 VectorXd Rusanov2::Flux_L(const Eigen::MatrixXd& sol, int i)
 {
 	VectorXd Fi, solt;
-	Fi.resize(5);
+	Fi.setZero(5);
 
 	if ((i!=0)&&(i!=_N-1))
 	{
 		solt = 0.5*( 3*sol.col(i)-sol.col(i+1) );
-
-		Fi(0) = solt(1);
-		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) = solt(1);
+			Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 
 		solt = 0.5*( sol.col(i-1)+sol.col(i) );
-
-		Fi(0) += solt(1);
-		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) += solt(1);
+			Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 	else if (i==0)
 	{
 		solt = 0.5*( 3*sol.col(i)-sol.col(i+1) );
-
-		Fi(0) = solt(1);
-		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) = solt(1);
+			Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3)  = solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 
 		solt = 0.5*( _Ul+sol.col(i) );
-
-		Fi(0) += solt(1);
-		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) += solt(1);
+			Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 	else
 	{
 		solt = 0.5*( 3*sol.col(i)-_Ur );
-
-		Fi(0) = solt(1);
-		Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) = solt(1);
+			Fi(1) = ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) = ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) = ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3) = solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 
 		solt = 0.5*( sol.col(i-1)+sol.col(i) );
-
-		Fi(0) += solt(1);
-		Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
-		Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
-		Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
-		Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0) + solt(3)*(sol(2,i)/sol(0,i));
+		if(abs(solt(0))>1e-14)
+		{
+			Fi(0) += solt(1);
+			Fi(1) += ( solt(1)*solt(1) - solt(3)*solt(3) )/solt(0) + 0.5*g*solt(0)*solt(0);
+			Fi(2) += ( solt(1)*solt(2) - solt(3)*solt(4) )/solt(0);
+			Fi(4) += ( solt(1)*solt(4) - solt(2)*solt(3) )/solt(0);
+		}
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(3) += solt(3)*(sol(1,i)/sol(0,i));
+			Fi(4) += solt(3)*(sol(2,i)/sol(0,i));
+		}
 	}
 
 	return Fi;
@@ -451,15 +580,36 @@ void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol, int n)
 
 	ofstream solution;
 	solution.open(name_file, ios::out);
-	solution.precision(14);
+	solution.precision(12);
 
 	for (size_t i = 0; i < _N; i++)
 	{
-		solution << i*dx << " " << sol(0,i) << " " << sol(1,i)/sol(0,i) << " " << sol(2,i)/sol(0,i)
-																				<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
-		solution << (i+1)*dx << " " << sol(0,i) << " " << sol(1,i)/sol(0,i) << " " << sol(2,i)/sol(0,i)
-																						<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
+		if(abs(sol(0,i))>1e-14)
+		{
+			solution << i*dx << " " << sol(0,i) << " " << sol(1,i)/sol(0,i) << " " << sol(2,i)/sol(0,i)
+																					<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
+			solution << (i+1)*dx << " " << sol(0,i) << " " << sol(1,i)/sol(0,i) << " " << sol(2,i)/sol(0,i)
+																							<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
+		}
+		else
+		{
+			if((i+0.5)*dx>_x0)
+			{
+				solution << i*dx << " " << sol(0,i) << " " << Ur(1) << " " << Ur(2)
+																						<< " " << Ur(3) << " " << Ur(4) << endl;
+				solution << (i+1)*dx << " " << sol(0,i) << " " << Ur(1) << " " << Ur(2)
+																								<< " " << Ur(3) << " " << Ur(4) << endl;
+			}
+			else
+			{
+				solution << i*dx << " " << sol(0,i) << " " << Ul(1) << " " << Ul(2)
+																						<< " " << Ul(3) << " " << Ul(4) << endl;
+				solution << (i+1)*dx << " " << sol(0,i) << " " << Ul(1) << " " << Ul(2)
+																								<< " " << Ul(3) << " " << Ul(4) << endl;
+			}
+		}
 	}
+
   solution << endl;
 	solution.close();
 }
@@ -476,16 +626,24 @@ void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol)
 
 	ofstream solution;
 	solution.open(name_file, ios::out);
-	solution.precision(7);
+	solution.precision(12);
 
-	solution << 0. << " " << _Ul(0) << " " << _Ul(1)/_Ul(0) << " " << _Ul(2)/_Ul(0)
-																	<< " " << _Ul(3)/_Ul(0) << " " << _Ul(4)/_Ul(0) << endl;
+	solution << 0. << " " << Ul(0) << " " << Ul(1) << " " << Ul(2)
+																	<< " " << Ul(3) << " " << Ul(4) << endl;
 	for (size_t i = 0; i < _N; i++)
-		solution << (i+0.5)*dx << " " << sol(0,i) << " " << sol(1,i)/sol(0,i) << " " << sol(2,i)/sol(0,i)
-																							<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
+		if(abs(sol(0,i))>1e-14)
+			solution << (i+0.5)*dx << " " << sol(0,i) << " " << sol(1,i)/sol(0,i) << " " << sol(2,i)/sol(0,i)
+																								<< " " << sol(3,i)/sol(0,i) << " " << sol(4,i)/sol(0,i) << endl;
+		else
+			if((i+0.5)*dx>_x0)
+				solution << (i+0.5)*dx << " " << sol(0,i) << " " << Ur(1) << " " << Ur(2)
+																									<< " " << Ur(3) << " " << Ur(4) << endl;
+			else
+				solution << (i+0.5)*dx << " " << sol(0,i) << " " << Ul(1) << " " << Ul(2)
+																									<< " " << Ul(3) << " " << Ul(4) << endl;
 
-  solution << 1. << " " << _Ur(0) << " " << _Ur(1)/_Ur(0) << " " << _Ur(2)/_Ur(0)
-																	<< " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0);
+  solution << 1. << " " << Ur(0) << " " << Ur(1) << " " << Ur(2)
+																	<< " " << Ur(3) << " " << Ur(4);
 
 	solution.close();
 }
@@ -534,15 +692,16 @@ void SpaceScheme::ComputeError(const Eigen::MatrixXd& sol)
 	string name_file = _results + "/bruh.dat";
 	ofstream bruh;
 	bruh.open(name_file, ios::out);
-	bruh.precision(7);
+	bruh.precision(12);
 
-	bruh << 0. << " " << _Ul(0) << " " << _Ul(1)/_Ul(0) << " " << _Ul(2)/_Ul(0)
-															<< " " << _Ul(3)/_Ul(0) << " " << _Ul(4)/_Ul(0) << endl;
+
+	bruh << 0. << " " << Ul(0) << " " << Ul(1) << " " << Ul(2)
+															<< " " << Ul(3) << " " << Ul(4) << endl;
 	for (size_t i = 0; i < N; i++)
 		bruh << (i+0.5)*dx << " " << exact_sol(0,i) << " " << exact_sol(1,i) << " " << exact_sol(2,i)
 																								<< " " << exact_sol(3,i) << " " << exact_sol(4,i) << endl;
-  bruh << 1. << " " << _Ur(0) << " " << _Ur(1)/_Ur(0) << " " << _Ur(2)/_Ur(0)
-															<< " " << _Ur(3)/_Ur(0) << " " << _Ur(4)/_Ur(0);
+  bruh << 1. << " " << Ur(0) << " " << Ur(1) << " " << Ur(2)
+															<< " " << Ur(3) << " " << Ur(4);
 	bruh.close();
 	// --------------------
 
@@ -553,18 +712,31 @@ void SpaceScheme::ComputeError(const Eigen::MatrixXd& sol)
 		if((i+1)*dx <= (k+1)*_dx)
 		{
 			error(0) += dx*(exact_sol(0,i) - sol(0,k))*(exact_sol(0,i) - sol(0,k));
-			for(int j = 1; j<5; j++)
-				error(j) += dx*(exact_sol(j,i) - sol(j,k)/sol(0,k))*(exact_sol(j,i) - sol(j,k)/sol(0,k));
+			if(abs(sol(0,k))>1e-14)
+				for(int j = 1; j<5; j++)
+					error(j) += dx*(exact_sol(j,i) - sol(j,k)/sol(0,k))*(exact_sol(j,i) - sol(j,k)/sol(0,k));
+			else
+				for(int j = 1; j<5; j++)
+					error(j) += dx*(exact_sol(j,i))*(exact_sol(j,i));
 		}
 		else
 		{
 			error(0) += ((k+1)*_dx  - i*dx)*(exact_sol(0,i) - sol(0,k))*(exact_sol(0,i) - sol(0,k));
 			error(0) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(0,i) - sol(0,k+1))*(exact_sol(0,i) - sol(0,k+1));
-			for(int j = 1; j<5; j++)
-			{
-				error(j) += ((k+1)*_dx  - i*dx)*(exact_sol(j,i) - sol(j,k)/sol(0,k))*(exact_sol(j,i) - sol(j,k)/sol(0,k));
-				error(j) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(j,i) - sol(j,k+1)/sol(0,k+1))*(exact_sol(j,i) - sol(j,k+1)/sol(0,k+1));
-			}
+
+			if(abs(sol(0,k))>1e-14)
+				for(int j = 1; j<5; j++)
+					error(j) += ((k+1)*_dx  - i*dx)*(exact_sol(j,i) - sol(j,k)/sol(0,k))*(exact_sol(j,i) - sol(j,k)/sol(0,k));
+			else
+				for(int j = 1; j<5; j++)
+					error(j) += ((k+1)*_dx  - i*dx)*(exact_sol(j,i))*(exact_sol(j,i));
+
+			if(abs(sol(0,k+1))>1e-14)
+				for(int j = 1; j<5; j++)
+					error(j) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(j,i) - sol(j,k+1)/sol(0,k+1))*(exact_sol(j,i) - sol(j,k+1)/sol(0,k+1));
+			else
+				for(int j = 1; j<5; j++)
+					error(j) += ((i+1)*dx - (k+1)*_dx)*(exact_sol(j,i))*(exact_sol(j,i));
 			k++;
 		}
 
