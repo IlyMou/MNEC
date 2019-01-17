@@ -551,7 +551,7 @@ double Rusanov2::limPente(const Eigen::MatrixXd& sol, int var, int i)
 WRS::WRS(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {}
 
-double WRS::vp_b(const Eigen::MatrixXd& sol, int i)
+double WRS::vp_c(const Eigen::MatrixXd& sol, int i)
 {
 
 }

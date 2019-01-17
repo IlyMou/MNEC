@@ -103,7 +103,7 @@ class WRS : public SpaceScheme
 
 		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
 
-		double vp_b(const Eigen::MatrixXd& sol, int i);
+		double vp_c(const Eigen::MatrixXd& sol, int i);
 };
 
 
