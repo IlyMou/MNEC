@@ -9,11 +9,13 @@
 class SpaceScheme {
 	protected:
 		int _N;
+		bool _stab;
 		double _bmax, _x0;
 		const std::string _results;
 
 		Eigen::MatrixXd _U, _F;
 		Eigen::VectorXd _Ul, _Ur, Ul, Ur;
+		Eigen::MatrixXd check_order;
  		std::string _norm_l2;
 
 		DataFile* _data_file;
@@ -72,7 +74,6 @@ class Rusanov1 : public SpaceScheme
 class Rusanov2 : public SpaceScheme
 {
 	private:
-		bool _stab;
 		SpaceScheme* _rO1;
 
   public:

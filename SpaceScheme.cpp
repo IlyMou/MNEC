@@ -16,7 +16,8 @@ _results(data_file->Get_results()), _data_file(data_file)
 	_F.resize(5, _N);
 	_Ul.resize(5); Ul.resize(5);
 	_Ur.resize(5); Ur.resize(5);
-
+	check_order.setZero(5,2*_N);
+	_stab =false;
 }
 
 // Construit la condition initiale au centre des triangles
@@ -263,22 +264,22 @@ void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
 		if ((i!=0)&&(i<_N-2))
 		{
 			_F.col(i) += 0.5*( br*( sol.col(i+2)-2*sol.col(i+1)+sol.col(i) )
-			 									-bl*( sol.col(i+1)-2*sol.col(i)+sol.col(i-1) ) );
+												-bl*( sol.col(i+1)-2*sol.col(i)+sol.col(i-1) ) );
 		}
 		else if (i==0)
 		{
 			_F.col(i) += 0.5*( br*( sol.col(i+2)-2*sol.col(i+1)+sol.col(i) )
-			 									-bl*( sol.col(i+1)-2*sol.col(i)+_Ul ) );
+												-bl*( sol.col(i+1)-2*sol.col(i)+_Ul ) );
 		}
 		else if (i==_N-2)
 		{
-				_F.col(i) += 0.5*( br*( _Ur-2*sol.col(i+1)+sol.col(i) )
-													-bl*( sol.col(i+1)-2*sol.col(i)+sol.col(i-1) ) );
+			_F.col(i) += 0.5*( br*( _Ur-2*sol.col(i+1)+sol.col(i) )
+												-bl*( sol.col(i+1)-2*sol.col(i)+sol.col(i-1) ) );
 		}
 		else
 		{
 			_F.col(i) += 0.5*( br*( -_Ur+sol.col(i) )
-			 									-bl*( _Ur-2*sol.col(i)+sol.col(i-1) ) );
+												-bl*( _Ur-2*sol.col(i)+sol.col(i-1) ) );
 		}
 
 		if(_bmax<bl)
@@ -300,6 +301,8 @@ void Rusanov2::BuildF(const double& t, const Eigen::MatrixXd& sol)
 			for(int i = 0; i<5; i++){
 				phi = limPente(sol,i,j);
 				_F(i,j) = (1-phi)*F(i,j) + phi*_F(i,j);
+				check_order(i,2*j) = phi;
+				check_order(i,2*j+1) = phi;
 			}
 		}
 	}
@@ -528,12 +531,12 @@ double Rusanov2::limPente(const Eigen::MatrixXd& sol, int var, int i)
 
 	if((abs(v-u)<1e-12)&&(abs(w-v)<1e-12))
 		theta = 1;
-	else if(abs(w-v)<5e-13)
+	else if(abs(w-v)<2.5e-13)
 		theta = 0;
 	else
 		theta = (v-u)/(w-u);
 
-	if((theta<0.5)||(theta >2))
+	if((theta<0.25)||(theta >4))
 		theta = 0;
 
 	phi = (theta + abs(theta))/(1.+theta);
@@ -646,6 +649,27 @@ void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol)
 																	<< " " << Ur(3) << " " << Ur(4);
 
 	solution.close();
+
+	if(_stab)
+	{
+		name_file = _results + "/limPente.dat";
+		ofstream order;
+		order.open(name_file, ios::out);
+		order.precision(12);
+		for (int i = 0; i < _N; i++)
+		{
+			order << i*dx;
+			for (int j = 0; j < 5; j++)
+				order << " " << check_order(j,2*i);
+			order << endl;
+
+			order << (i+1)*dx;
+			for (int j = 0; j < 5; j++)
+				order << " " << check_order(j,2*i+1);
+			order << endl;
+		}
+		order.close();
+	}
 }
 
 // Solution exacte au centre des triangles
