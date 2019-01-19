@@ -4,7 +4,7 @@
 #include "Sparse"
 #include "DataFile.h"
 
-#define g 9.8
+#define g 9.81
 
 class SpaceScheme {
 	protected:
@@ -92,6 +92,11 @@ class Rusanov2 : public SpaceScheme
 
 class WRS : public SpaceScheme
 {
+	private:
+		double _dt;
+		Eigen::VectorXd _Sigl, _Sigr;
+		Eigen::MatrixXd _ISl, _ISr;
+
   public:
 		// Constructeur
 		WRS(DataFile* data_file);
@@ -103,7 +108,9 @@ class WRS : public SpaceScheme
 
 		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
 
-		double vp_c(const Eigen::MatrixXd& sol, int i);
+		Eigen::VectorXd vp_c(const Eigen::MatrixXd& IS);
+
+		Eigen::MatrixXd interState(const Eigen::MatrixXd& sol, int i);
 };
 
 

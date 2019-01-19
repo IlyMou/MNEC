@@ -68,7 +68,7 @@ int main(int argc, char** argv)
       time_scheme->SaveSolution(n);
   }
   time_scheme->SaveSolution();
-  
+
   // Fin du chrono
   auto finish = chrono::high_resolution_clock::now();
   double t = chrono::duration_cast<chrono::milliseconds>(finish-start).count();

@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 
-#define g 9.8
+#define g 9.81
 
 // Définition de la classe
 class DataFile {
