@@ -595,17 +595,8 @@ void WRS::BuildF(const double& t, const Eigen::MatrixXd& sol)
 		_ISl = interState(sol, i);
 		_ISr = interState(sol, i+1);
 
-		_Sigl = vp_c(_ISl);	bl = _Sigl(4);
-		_Sigr = vp_c(_ISr);	br = _Sigr(0);
-
-		// if((i==0)||(i==_N-1))
-		// {
-		// 	cout << endl << endl << "i = " << i << endl;
-		// 	cout << "Sigr = " << _Sigr(0) << " " << _Sigr(1) << " " << _Sigr(2) << " " << _Sigr(3) << " " << _Sigr(4) << endl;
-		// 	cout << " ISr = " << endl << _ISr << endl;
-		// 	cout << "Sigl = " << _Sigl(0) << " " << _Sigl(1) << " " << _Sigl(2) << " " << _Sigl(3) << " " << _Sigl(4) << endl;
-		// 	cout << " ISl = " << endl << _ISl << endl << endl;
-		// }
+		_Sigl = vp_c(_ISl);	bl = max(abs(_Sigl(4)),abs(_Sigl(0)));
+		_Sigr = vp_c(_ISr);	br = max(abs(_Sigr(4)),abs(_Sigr(0)));
 
 		if(_bmax<bl)
 			_bmax = bl;
@@ -644,6 +635,24 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 	// 	Fi(4) = ( Ur(1)*Ur(4) - Ur(2)*Ur(3) )*Ur(0);
 	// }
 
+	// if (i!=_N-1)
+	// {
+	// 	if(abs(sol(0,i))>1e-14)
+	// 	{
+	// 		Fi(3) = sol(3,i+1)*(sol(1,i)/sol(0,i));
+	// 		Fi(4) = sol(3,i+1)*(sol(2,i)/sol(0,i));
+	// 	}
+	// }
+	// else
+	// {
+	// 	if(abs(sol(0,i))>1e-14)
+	// 	{
+	// 		Fi(3) = _Ur(3)*(sol(1,i)/sol(0,i));
+	// 		Fi(4) = _Ur(3)*(sol(2,i)/sol(0,i));
+	// 	}
+	// }
+
+
 	if( _N*_dt*vp(4) < -0.5 )
   {
     cout << endl << "The CFL is not respected ! " << endl; abort();
@@ -670,6 +679,8 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 						+ vp(0)*IS(3,0);
 		Fi(4) -= -vp(4)*IS(4,5) + (vp(4)-vp(3))*IS(4,4) + (vp(3)-vp(2))*IS(4,3)
 						+ (vp(2)-vp(1))*IS(4,2) + (vp(1)-vp(0))*IS(4,1) + vp(0)*IS(4,0);
+		// Fi(3) += vp(2)*( IS(3,5) - IS(3,0) );
+		// Fi(4) += _ISr(2,3)*( IS(4,5) - IS(4,0) );
 	}
 	else if( vp(3) < 0)
 	{
@@ -680,6 +691,8 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 		Fi(3) -= -vp(2)*IS(3,4) + (vp(2)-vp(0))*IS(3,2) + vp(0)*IS(3,0);
 		Fi(4) -= -vp(3)*IS(4,4) + (vp(3)-vp(2))*IS(4,3) + (vp(2)-vp(1))*IS(4,2)
 						+ (vp(1)-vp(0))*IS(4,1) + vp(0)*IS(4,0);
+		// Fi(3) += vp(2)*( IS(3,5) - IS(3,0) );
+		// Fi(4) += _ISr(2,3)*( IS(4,5) - IS(4,0) );
 	}
 	else if( vp(2) < 0)
 	{
@@ -690,6 +703,8 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 		Fi(3) -= -vp(2)*IS(3,4) + (vp(2)-vp(0))*IS(3,2) + vp(0)*IS(3,0);
 		Fi(4) -= -vp(2)*IS(4,3) + (vp(2)-vp(1))*IS(4,2) + (vp(1)-vp(0))*IS(4,1)
 						+ vp(0)*IS(4,0);
+		// Fi(3) += vp(2)*( IS(3,5) - IS(3,0) );
+		// Fi(4) += _ISr(2,3)*( IS(4,5) - IS(4,0) );
 	}
 	else if( vp(1) < 0)
 	{
@@ -735,6 +750,24 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 	// 	Fi(4) = ( Ul(1)*Ul(4) - Ul(2)*Ul(3) )*Ul(0);
 	// }
 
+
+	// if (i!=0)
+	// {
+	// 	if(abs(sol(0,i))>1e-14)
+	// 	{
+	// 		Fi(3) = sol(3,i-1)*(sol(1,i)/sol(0,i));
+	// 		Fi(4) = sol(3,i-1)*(sol(2,i)/sol(0,i));
+	// 	}
+	// }
+	// else
+	// {
+	// 	if(abs(sol(0,i))>1e-14)
+	// 	{
+	// 		Fi(3) = _Ul(3)*(sol(1,i)/sol(0,i));
+	// 		Fi(4) = _Ul(3)*(sol(2,i)/sol(0,i));
+	// 	}
+	// }
+
 	if( _N*_dt*vp(4) > 0.5 )
   {
     cout << endl << "The CFL is not respected ! " << endl; abort();
@@ -762,6 +795,8 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 						-vp(4)*IS(3,5);
 		Fi(4) += vp(0)*IS(4,0) + (vp(1)-vp(0))*IS(4,1) + (vp(2)-vp(1))*IS(4,2)
 		 				+(vp(3)-vp(2))*IS(4,3) + (vp(4)-vp(3))*IS(4,4) - vp(4)*IS(4,5);
+		// Fi(3) += vp(2)*( IS(3,0) - IS(3,5) );
+		// Fi(4) += _ISl(2,3)*( IS(4,0) - IS(4,5) );
 	}
 	else if( vp(1) > 0)
 	{
@@ -772,6 +807,8 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 		Fi(3) += vp(2)*IS(3,1) + (vp(4)-vp(2))*IS(3,3) - vp(4)*IS(3,5);
 		Fi(4) += vp(1)*IS(4,1) + (vp(2)-vp(1))*IS(4,2) + (vp(3)-vp(2))*IS(4,3)
 						+(vp(4)-vp(3))*IS(4,4) - vp(4)*IS(4,5);
+		// Fi(3) += vp(2)*( IS(3,0) - IS(3,5) );
+		// Fi(4) += _ISl(2,3)*( IS(4,0) - IS(4,5) );
 	}
 	else if( vp(2) > 0)
 	{
@@ -782,6 +819,8 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 		Fi(3) += vp(2)*IS(3,1) + (vp(4)-vp(2))*IS(3,3) - vp(4)*IS(3,5);
 		Fi(4) += vp(2)*IS(4,2) + (vp(3)-vp(2))*IS(4,3) + (vp(4)-vp(3))*IS(4,4)
 						-vp(4)*IS(4,5);
+		// Fi(3) += vp(2)*( IS(3,0) - IS(3,5) );
+		// Fi(4) += _ISl(2,3)*( IS(4,0) - IS(4,5) );
 	}
 	else if( vp(3) > 0)
 	{
@@ -895,9 +934,9 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 
 	cl = 0; cr = 0;
 	if(hl>1e-12)
-		cl = hl*sl;//hl*(sl + 1.5*(abs(ul-ur) + abs(pr - pl)/(hl*sl + hr*sr)));
+		cl = hl*(sl + 1.5*(max(0.,ul-ur) + max(0.,pr - pl)/(hl*sl + hr*sr)));
 	if(hr>1e-12)
-		cr = hr*sr;//hr*(sr + 1.5*(abs(ul-ur) + abs(pl - pr)/(hl*sl + hr*sr)));
+		cr = hr*(sr + 1.5*(max(0.,ul-ur) + max(0.,pl - pr)/(hl*sl + hr*sr)));
 
 	cal = hl*abs(al);
 	car = hr*abs(ar);
@@ -910,9 +949,9 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 	if(hr>1e-12)
 		hr_ = hr/( 1. + hr*( cl*(ur-ul) + pr-pl )/( cr*(cl+cr) ) );
 
-	u_ = 0; v_ = 0;
-	p_ = 0; pt_ = 0;
-	bl_ = 0; br_ = 0;
+	u_  = 0;  v_  = 0;
+	p_  = 0;  pt_ = 0;
+	bl_ = bl; br_ = br;
 	if((hr>1e-12)||(hl>1e-12))
 	{
 		u_ = ( cl*ul + cr*ur + pl - pr )/( cl + cr );
@@ -925,7 +964,7 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 		pt_= ( car*ptl + cal*ptr - cal*car*(vr-vl) )/( cal+car );
 	}
 
-	al_ = 0; ar_ = 0;
+	al_ = al; ar_ = al;
 	if(hl>1e-12)
 		al_ = al*hl/hl_;
  	if(hr>1e-12)
@@ -946,6 +985,8 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 				cl , cl_ , cl_ , cr_ , cr_ , cr ,
 				cal, cal_, cal_, car_, car_, car;
 
+	// if(i == _N/2)
+	// 	cout << endl << endl << IS << endl;
 	return IS;
 }
 
