@@ -26,7 +26,7 @@ wrs
 # rusanov, wrs = 5-Wave Relaxation Solver
 
 ordre
-1
+2
 # Ordre 2, 1, 0 (0 => 2 stabilisé)
 
 norm_l2

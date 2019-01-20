@@ -94,6 +94,7 @@ class WRS : public SpaceScheme
 {
 	private:
 		double _dt;
+		bool _stab, _o2;
 		Eigen::VectorXd _Sigl, _Sigr;
 		Eigen::MatrixXd _ISl, _ISr;
 

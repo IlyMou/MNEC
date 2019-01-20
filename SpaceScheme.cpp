@@ -553,6 +553,12 @@ WRS::WRS(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 	_dt = data_file->Get_dt();
 	_ISl.setZero(9,6);
 	_ISr.setZero(9,6);
+	_stab = false; _o2 = false;
+	if(data_file->Get_order() == 2)
+		_o2 = true;
+	if(data_file->Get_order() == 0){
+		_o2 = true; _stab = true;
+	}
 }
 
 VectorXd WRS::vp_c(const Eigen::MatrixXd& IS)
@@ -590,9 +596,10 @@ void WRS::BuildF(const double& t, const Eigen::MatrixXd& sol)
 	_Sigl.setZero(5);
  	_Sigr.setZero(5);
 
+	_ISl = interState(sol, 0);
 	for(int i = 0; i<_N; i++)
 	{
-		_ISl = interState(sol, i);
+		if(i!=0) _ISl = _ISr;
 		_ISr = interState(sol, i+1);
 
 		_Sigl = vp_c(_ISl);	bl = max(abs(_Sigl(4)),abs(_Sigl(0)));
@@ -617,40 +624,24 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 	VectorXd Fi, vp = _Sigr;
 	Fi.setZero(5);
 
-	// if (i!=_N-1)
-	// {
-	// 	if(abs(sol(0,i+1))>1e-14)
-	// 	{
-	// 		Fi(0) = sol(1,i+1);
-	// 		Fi(1) = ( sol(1,i+1)*sol(1,i+1) - sol(3,i+1)*sol(3,i+1) )/sol(0,i+1) + 0.5*g*sol(0,i+1)*sol(0,i+1) ;
-	// 		Fi(2) = ( sol(1,i+1)*sol(2,i+1) - sol(3,i+1)*sol(4,i+1) )/sol(0,i+1);
-	// 		Fi(4) = ( sol(1,i+1)*sol(4,i+1) - sol(2,i+1)*sol(3,i+1) )/sol(0,i+1);
-	// 	}
-	// }
-	// else
-	// {
-	// 	Fi(0) = _Ur(1);
-	// 	Fi(1) = ( Ur(1)*Ur(1) - Ur(3)*Ur(3) )*Ur(0) + 0.5*g*_Ur(0)*_Ur(0);
-	// 	Fi(2) = ( Ur(1)*Ur(2) - Ur(3)*Ur(4) )*Ur(0);
-	// 	Fi(4) = ( Ur(1)*Ur(4) - Ur(2)*Ur(3) )*Ur(0);
-	// }
+	if (i!=_N-1)
+	{
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(0) = sol(1,i);
+			Fi(1) = ( sol(1,i)*sol(1,i) - sol(3,i)*sol(3,i) )/sol(0,i) + 0.5*g*sol(0,i)*sol(0,i) ;
+			Fi(2) = ( sol(1,i)*sol(2,i) - sol(3,i)*sol(4,i) )/sol(0,i);
+			Fi(4) = ( sol(1,i)*sol(4,i) - sol(2,i)*sol(3,i) )/sol(0,i);
+		}
+	}
+	else
+	{
+		Fi(0) = _Ur(1);
+		Fi(1) = ( Ur(1)*Ur(1) - Ur(3)*Ur(3) )*Ur(0) + 0.5*g*_Ur(0)*_Ur(0);
+		Fi(2) = ( Ur(1)*Ur(2) - Ur(3)*Ur(4) )*Ur(0);
+		Fi(4) = ( Ur(1)*Ur(4) - Ur(2)*Ur(3) )*Ur(0);
+	}
 
-	// if (i!=_N-1)
-	// {
-	// 	if(abs(sol(0,i))>1e-14)
-	// 	{
-	// 		Fi(3) = sol(3,i+1)*(sol(1,i)/sol(0,i));
-	// 		Fi(4) = sol(3,i+1)*(sol(2,i)/sol(0,i));
-	// 	}
-	// }
-	// else
-	// {
-	// 	if(abs(sol(0,i))>1e-14)
-	// 	{
-	// 		Fi(3) = _Ur(3)*(sol(1,i)/sol(0,i));
-	// 		Fi(4) = _Ur(3)*(sol(2,i)/sol(0,i));
-	// 	}
-	// }
 
 
 	if( _N*_dt*vp(4) < -0.5 )
@@ -679,8 +670,6 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 						+ vp(0)*IS(3,0);
 		Fi(4) -= -vp(4)*IS(4,5) + (vp(4)-vp(3))*IS(4,4) + (vp(3)-vp(2))*IS(4,3)
 						+ (vp(2)-vp(1))*IS(4,2) + (vp(1)-vp(0))*IS(4,1) + vp(0)*IS(4,0);
-		// Fi(3) += vp(2)*( IS(3,5) - IS(3,0) );
-		// Fi(4) += _ISr(2,3)*( IS(4,5) - IS(4,0) );
 	}
 	else if( vp(3) < 0)
 	{
@@ -691,8 +680,6 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 		Fi(3) -= -vp(2)*IS(3,4) + (vp(2)-vp(0))*IS(3,2) + vp(0)*IS(3,0);
 		Fi(4) -= -vp(3)*IS(4,4) + (vp(3)-vp(2))*IS(4,3) + (vp(2)-vp(1))*IS(4,2)
 						+ (vp(1)-vp(0))*IS(4,1) + vp(0)*IS(4,0);
-		// Fi(3) += vp(2)*( IS(3,5) - IS(3,0) );
-		// Fi(4) += _ISr(2,3)*( IS(4,5) - IS(4,0) );
 	}
 	else if( vp(2) < 0)
 	{
@@ -703,8 +690,6 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 		Fi(3) -= -vp(2)*IS(3,4) + (vp(2)-vp(0))*IS(3,2) + vp(0)*IS(3,0);
 		Fi(4) -= -vp(2)*IS(4,3) + (vp(2)-vp(1))*IS(4,2) + (vp(1)-vp(0))*IS(4,1)
 						+ vp(0)*IS(4,0);
-		// Fi(3) += vp(2)*( IS(3,5) - IS(3,0) );
-		// Fi(4) += _ISr(2,3)*( IS(4,5) - IS(4,0) );
 	}
 	else if( vp(1) < 0)
 	{
@@ -732,41 +717,24 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 	VectorXd Fi, vp = _Sigl;
 	Fi.setZero(5);
 
-	// if (i!=0)
-	// {
-	// 	if(abs(sol(0,i-1))>1e-14)
-	// 	{
-	// 		Fi(0) = sol(1,i-1);
-	// 		Fi(1) = ( sol(1,i-1)*sol(1,i-1) - sol(3,i-1)*sol(3,i-1) )/sol(0,i-1) + 0.5*g*sol(0,i-1)*sol(0,i-1);
-	// 		Fi(2) = ( sol(1,i-1)*sol(2,i-1) - sol(3,i-1)*sol(4,i-1) )/sol(0,i-1);
-	// 		Fi(4) = ( sol(1,i-1)*sol(4,i-1) - sol(2,i-1)*sol(3,i-1) )/sol(0,i-1);
-	// 	}
-	// }
-	// else
-	// {
-	// 	Fi(0) = _Ul(1);
-	// 	Fi(1) = ( Ul(1)*Ul(1) - Ul(3)*Ul(3) )*Ul(0) + 0.5*g*_Ul(0)*_Ul(0);
-	// 	Fi(2) = ( Ul(1)*Ul(2) - Ul(3)*Ul(4) )*Ul(0);
-	// 	Fi(4) = ( Ul(1)*Ul(4) - Ul(2)*Ul(3) )*Ul(0);
-	// }
+	if (i!=0)
+	{
+		if(abs(sol(0,i))>1e-14)
+		{
+			Fi(0) = sol(1,i);
+			Fi(1) = ( sol(1,i)*sol(1,i) - sol(3,i)*sol(3,i) )/sol(0,i) + 0.5*g*sol(0,i)*sol(0,i);
+			Fi(2) = ( sol(1,i)*sol(2,i) - sol(3,i)*sol(4,i) )/sol(0,i);
+			Fi(4) = ( sol(1,i)*sol(4,i) - sol(2,i)*sol(3,i) )/sol(0,i);
+		}
+	}
+	else
+	{
+		Fi(0) = _Ul(1);
+		Fi(1) = ( Ul(1)*Ul(1) - Ul(3)*Ul(3) )*Ul(0) + 0.5*g*_Ul(0)*_Ul(0);
+		Fi(2) = ( Ul(1)*Ul(2) - Ul(3)*Ul(4) )*Ul(0);
+		Fi(4) = ( Ul(1)*Ul(4) - Ul(2)*Ul(3) )*Ul(0);
+	}
 
-
-	// if (i!=0)
-	// {
-	// 	if(abs(sol(0,i))>1e-14)
-	// 	{
-	// 		Fi(3) = sol(3,i-1)*(sol(1,i)/sol(0,i));
-	// 		Fi(4) = sol(3,i-1)*(sol(2,i)/sol(0,i));
-	// 	}
-	// }
-	// else
-	// {
-	// 	if(abs(sol(0,i))>1e-14)
-	// 	{
-	// 		Fi(3) = _Ul(3)*(sol(1,i)/sol(0,i));
-	// 		Fi(4) = _Ul(3)*(sol(2,i)/sol(0,i));
-	// 	}
-	// }
 
 	if( _N*_dt*vp(4) > 0.5 )
   {
@@ -787,7 +755,7 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 	{
 		Fi(0) += vp(0)*IS(0,0) + (vp(2)-vp(0))*IS(0,1) + (vp(4)-vp(2))*IS(0,3)
 						-vp(4)*IS(0,5);
-		Fi(1) += vp(0)*IS(1,0) + (vp(2)-vp(0))*IS(1,3) + (vp(4)-vp(2))*IS(1,3)
+		Fi(1) += vp(0)*IS(1,0) + (vp(2)-vp(0))*IS(1,2) + (vp(4)-vp(2))*IS(1,3)
 		 				-vp(4)*IS(1,5);
 		Fi(2) += vp(0)*IS(2,0) + (vp(1)-vp(0))*IS(2,1) + (vp(2)-vp(1))*IS(2,2)
 		 				+(vp(3)-vp(2))*IS(2,3) + (vp(4)-vp(3))*IS(2,4) - vp(4)*IS(2,5);
@@ -795,20 +763,16 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 						-vp(4)*IS(3,5);
 		Fi(4) += vp(0)*IS(4,0) + (vp(1)-vp(0))*IS(4,1) + (vp(2)-vp(1))*IS(4,2)
 		 				+(vp(3)-vp(2))*IS(4,3) + (vp(4)-vp(3))*IS(4,4) - vp(4)*IS(4,5);
-		// Fi(3) += vp(2)*( IS(3,0) - IS(3,5) );
-		// Fi(4) += _ISl(2,3)*( IS(4,0) - IS(4,5) );
 	}
 	else if( vp(1) > 0)
 	{
 		Fi(0) += vp(2)*IS(0,1) + (vp(4)-vp(2))*IS(0,3) - vp(4)*IS(0,5);
-		Fi(1) += vp(2)*IS(1,3) + (vp(4)-vp(2))*IS(1,3) - vp(4)*IS(1,5);
+		Fi(1) += vp(2)*IS(1,2) + (vp(4)-vp(2))*IS(1,3) - vp(4)*IS(1,5);
 		Fi(2) += vp(1)*IS(2,1) + (vp(2)-vp(1))*IS(2,2) + (vp(3)-vp(2))*IS(2,3)
 						+(vp(4)-vp(3))*IS(2,4) - vp(4)*IS(2,5);
 		Fi(3) += vp(2)*IS(3,1) + (vp(4)-vp(2))*IS(3,3) - vp(4)*IS(3,5);
 		Fi(4) += vp(1)*IS(4,1) + (vp(2)-vp(1))*IS(4,2) + (vp(3)-vp(2))*IS(4,3)
 						+(vp(4)-vp(3))*IS(4,4) - vp(4)*IS(4,5);
-		// Fi(3) += vp(2)*( IS(3,0) - IS(3,5) );
-		// Fi(4) += _ISl(2,3)*( IS(4,0) - IS(4,5) );
 	}
 	else if( vp(2) > 0)
 	{
@@ -819,8 +783,6 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 		Fi(3) += vp(2)*IS(3,1) + (vp(4)-vp(2))*IS(3,3) - vp(4)*IS(3,5);
 		Fi(4) += vp(2)*IS(4,2) + (vp(3)-vp(2))*IS(4,3) + (vp(4)-vp(3))*IS(4,4)
 						-vp(4)*IS(4,5);
-		// Fi(3) += vp(2)*( IS(3,0) - IS(3,5) );
-		// Fi(4) += _ISl(2,3)*( IS(4,0) - IS(4,5) );
 	}
 	else if( vp(3) > 0)
 	{
@@ -987,8 +949,8 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 				cl , cl_ , cl_ , cr_ , cr_ , cr ,
 				cal, cal_, cal_, car_, car_, car;
 
- 	//if(i == _N/2)
-	// 	cout << endl << endl << IS << endl;
+ 	// if((i == _N/2-1)||(i == _N/2)||(i == _N/2+1))
+		// cout << endl << endl << " i = " << i << " " << endl << IS << endl;
 	return IS;
 }
 
