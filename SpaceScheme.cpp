@@ -957,11 +957,13 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 		u_ = ( cl*ul + cr*ur + pl - pr )/( cl + cr );
 		v_ = ( cal*vl + car*vr + ptl - ptr )/( cal + car );
 
-		bl_= bl + (ptl - ptr + car*(vr-vl)) * hl*al/(cal*(cal+car));
-		br_= br + (ptr - ptl + cal*(vr-vl)) * hr*ar/(car*(cal+car));
-
 		p_ = ( cr*pl + cl*pr - cl*cr*(ur-ul) )/( cl+cr );
 		pt_= ( car*ptl + cal*ptr - cal*car*(vr-vl) )/( cal+car );
+
+		if(abs(car)>1e-12)
+			br_= br + (ptr - ptl + cal*(vr-vl)) * hr*ar/(car*(cal+car));
+		if(abs(cal)>1e-12)
+			bl_= bl + (ptl - ptr + car*(vr-vl)) * hl*al/(cal*(cal+car));
 	}
 
 	al_ = al; ar_ = al;
@@ -985,7 +987,7 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 				cl , cl_ , cl_ , cr_ , cr_ , cr ,
 				cal, cal_, cal_, car_, car_, car;
 
-	// if(i == _N/2)
+ 	//if(i == _N/2)
 	// 	cout << endl << endl << IS << endl;
 	return IS;
 }
