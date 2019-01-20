@@ -90,7 +90,7 @@ class Rusanov2 : public SpaceScheme
 		double limPente(const Eigen::MatrixXd& sol, int var, int i);
 };
 
-class WRS : public SpaceScheme
+class WRS1 : public SpaceScheme
 {
 	private:
 		double _dt;
@@ -100,7 +100,32 @@ class WRS : public SpaceScheme
 
   public:
 		// Constructeur
-		WRS(DataFile* data_file);
+		WRS1(DataFile* data_file);
+
+    // Une étape du schéma en temps
+    void BuildF(const double& t, const Eigen::MatrixXd& sol);
+
+		Eigen::VectorXd Flux_R(const Eigen::MatrixXd& sol, int i);
+
+		Eigen::VectorXd Flux_L(const Eigen::MatrixXd& sol, int i);
+
+		Eigen::VectorXd vp_c(const Eigen::MatrixXd& IS);
+
+		Eigen::MatrixXd interState(const Eigen::MatrixXd& sol, int i);
+};
+
+class WRS2 : public SpaceScheme
+{
+	private:
+		double _dt;
+		bool _stab;
+		SpaceScheme* _RSO1;
+		Eigen::VectorXd _Sigl, _Sigr;
+		Eigen::MatrixXd _ISl, _ISr;
+
+  public:
+		// Constructeur
+		WRS2(DataFile* data_file);
 
     // Une étape du schéma en temps
     void BuildF(const double& t, const Eigen::MatrixXd& sol);

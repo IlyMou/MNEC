@@ -29,7 +29,12 @@ int main(int argc, char** argv)
   // ---------------------------- Résolution  ----------------------------------
   SpaceScheme* pb = NULL;
   if (data_file->Get_numerical_flux_choice() == "wrs")
-    pb = new WRS(data_file);
+  {
+    if (data_file->Get_order() == 1)
+      pb = new WRS1(data_file);
+    else
+      pb = new WRS2(data_file);
+  }
   else if (data_file->Get_order() == 1)
     pb = new Rusanov1(data_file);
   else

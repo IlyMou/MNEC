@@ -78,13 +78,13 @@ double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
 		}
 		if (abs(sol(0,i))<1e-14)
 		{
-			ur = Ur(1);
-			ar = Ur(3);
+			if(i<=_N/2) { ur = Ul(1);	ar = Ul(3); }
+			else { ur = Ur(1);	ar = Ur(3); }
 		}
 		if (abs(sol(0,i-1))<1e-14)
 		{
-			ul = Ul(1);
-			al = Ul(3);
+			if(i<=_N/2) { ul = Ul(1); al = Ul(3); }
+			else { ul = Ur(1); al = Ur(3); } 
 		}
 	}
 	else if (i==0)
@@ -97,8 +97,8 @@ double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
 		}
 		else
 		{
-			ur = Ur(1);
-			ar = Ur(3);
+			ur = Ul(1);
+			ar = Ul(3);
 		}
 		ul = Ul(1); al = Ul(3);
 	}
@@ -112,8 +112,8 @@ double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
 		}
 		else
 		{
-			ul = Ul(1);
-			al = Ul(3);
+			ul = Ur(1);
+			al = Ur(3);
 		}
 		ur = Ur(1); ar = Ur(3);
 	}
@@ -238,7 +238,7 @@ VectorXd Rusanov1::Flux_L(const Eigen::MatrixXd& sol, int i)
 
 
 // -----------------------------------------
-//   Rusanov ordre 1
+//   Rusanov ordre 2
 // -----------------------------------------
 Rusanov2::Rusanov2(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {
@@ -546,9 +546,9 @@ double Rusanov2::limPente(const Eigen::MatrixXd& sol, int var, int i)
 
 
 // -----------------------------------------
-//   Relaxation method
+//   Relaxation method 1
 // -----------------------------------------
-WRS::WRS(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
+WRS1::WRS1(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {
 	_dt = data_file->Get_dt();
 	_ISl.setZero(9,6);
@@ -561,7 +561,7 @@ WRS::WRS(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 	}
 }
 
-VectorXd WRS::vp_c(const Eigen::MatrixXd& IS)
+VectorXd WRS1::vp_c(const Eigen::MatrixXd& IS)
 {
 	double hr_, hl_, hr, hl;
 	double cl, cr, cal, car;
@@ -590,7 +590,7 @@ VectorXd WRS::vp_c(const Eigen::MatrixXd& IS)
 	return vp;
 }
 
-void WRS::BuildF(const double& t, const Eigen::MatrixXd& sol)
+void WRS1::BuildF(const double& t, const Eigen::MatrixXd& sol)
 {
 	double bl = 0, br = 0; _bmax = 0;
 	_Sigl.setZero(5);
@@ -618,7 +618,7 @@ void WRS::BuildF(const double& t, const Eigen::MatrixXd& sol)
 	_F = -_N*_F;
 }
 
-VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
+VectorXd WRS1::Flux_R(const Eigen::MatrixXd& sol, int i)
 {
 	double dx = 1./_N;
 	VectorXd Fi, vp = _Sigr;
@@ -711,7 +711,7 @@ VectorXd WRS::Flux_R(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
+VectorXd WRS1::Flux_L(const Eigen::MatrixXd& sol, int i)
 {
 	double dx = 1./_N;
 	VectorXd Fi, vp = _Sigl;
@@ -804,7 +804,7 @@ VectorXd WRS::Flux_L(const Eigen::MatrixXd& sol, int i)
 	return Fi;
 }
 
-MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
+MatrixXd WRS1::interState(const Eigen::MatrixXd& sol, int i)
 {
 	double hl, hr, hl_, hr_;
 	double ul, ur, u_;
@@ -848,10 +848,20 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 		}
 		else
 		{
-			ul = Ul(1); ur = Ur(1);
-			ul = Ul(2); ur = Ur(2);
-			al = Ul(3);	ar = Ur(3);
-			bl = Ul(4);	br = Ur(4);
+			if(i>=_N/2)
+			{
+				ul = Ur(1); ur = Ur(1);
+				ul = Ur(2); ur = Ur(2);
+				al = Ur(3);	ar = Ur(3);
+				bl = Ur(4);	br = Ur(4);
+			}
+			else
+			{
+				ul = Ul(1); ur = Ul(1);
+				ul = Ul(2); ur = Ul(2);
+				al = Ul(3);	ar = Ul(3);
+				bl = Ul(4);	br = Ul(4);
+			}
 		}
 	}
 	else if(i==0)
@@ -911,8 +921,8 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 	if(hr>1e-12)
 		hr_ = hr/( 1. + hr*( cl*(ur-ul) + pr-pl )/( cr*(cl+cr) ) );
 
-	u_  = 0;  v_  = 0;
-	p_  = 0;  pt_ = 0;
+	u_  = 0; v_  = 0;
+	p_  = 0; pt_ = 0;
 	bl_ = bl; br_ = br;
 	if((hr>1e-12)||(hl>1e-12))
 	{
@@ -928,7 +938,7 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 			bl_= bl + (ptl - ptr + car*(vr-vl)) * hl*al/(cal*(cal+car));
 	}
 
-	al_ = al; ar_ = al;
+	al_ = al; ar_ = ar;
 	if(hl>1e-12)
 		al_ = al*hl/hl_;
  	if(hr>1e-12)
@@ -949,11 +959,50 @@ MatrixXd WRS::interState(const Eigen::MatrixXd& sol, int i)
 				cl , cl_ , cl_ , cr_ , cr_ , cr ,
 				cal, cal_, cal_, car_, car_, car;
 
- 	// if((i == _N/2-1)||(i == _N/2)||(i == _N/2+1))
-		// cout << endl << endl << " i = " << i << " " << endl << IS << endl;
+	// if((i == _N/2-1)||(i == _N/2)||(i == _N/2+1))
+	// 	cout << endl << endl << " i = " << i << " " << endl << IS << endl;
 	return IS;
 }
 
+
+// -----------------------------------------
+//   Relaxation method
+// -----------------------------------------
+WRS2::WRS2(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
+{
+
+}
+
+// Une étape du schéma en temps
+void WRS2::BuildF(const double& t, const Eigen::MatrixXd& sol)
+{
+
+}
+
+Eigen::VectorXd WRS2::Flux_R(const Eigen::MatrixXd& sol, int i)
+{
+
+}
+
+Eigen::VectorXd WRS2::Flux_L(const Eigen::MatrixXd& sol, int i)
+{
+
+}
+
+Eigen::VectorXd WRS2::vp_c(const Eigen::MatrixXd& IS)
+{
+
+}
+
+Eigen::MatrixXd WRS2::interState(const Eigen::MatrixXd& sol, int i)
+{
+
+}
+
+
+// -----------------------------------------
+//   Solution
+// -----------------------------------------
 // Sauvegarde la solution
 void SpaceScheme::SaveSol(const Eigen::MatrixXd& sol, int n)
 {
