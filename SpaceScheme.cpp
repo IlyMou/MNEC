@@ -84,7 +84,7 @@ double SpaceScheme::vp_b(const Eigen::MatrixXd& sol, int i)
 		if (abs(sol(0,i-1))<1e-14)
 		{
 			if(i<=_N/2) { ul = Ul(1); al = Ul(3); }
-			else { ul = Ur(1); al = Ur(3); } 
+			else { ul = Ur(1); al = Ur(3); }
 		}
 	}
 	else if (i==0)
@@ -553,12 +553,6 @@ WRS1::WRS1(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 	_dt = data_file->Get_dt();
 	_ISl.setZero(9,6);
 	_ISr.setZero(9,6);
-	_stab = false; _o2 = false;
-	if(data_file->Get_order() == 2)
-		_o2 = true;
-	if(data_file->Get_order() == 0){
-		_o2 = true; _stab = true;
-	}
 }
 
 VectorXd WRS1::vp_c(const Eigen::MatrixXd& IS)
@@ -623,26 +617,6 @@ VectorXd WRS1::Flux_R(const Eigen::MatrixXd& sol, int i)
 	double dx = 1./_N;
 	VectorXd Fi, vp = _Sigr;
 	Fi.setZero(5);
-
-	if (i!=_N-1)
-	{
-		if(abs(sol(0,i))>1e-14)
-		{
-			Fi(0) = sol(1,i);
-			Fi(1) = ( sol(1,i)*sol(1,i) - sol(3,i)*sol(3,i) )/sol(0,i) + 0.5*g*sol(0,i)*sol(0,i) ;
-			Fi(2) = ( sol(1,i)*sol(2,i) - sol(3,i)*sol(4,i) )/sol(0,i);
-			Fi(4) = ( sol(1,i)*sol(4,i) - sol(2,i)*sol(3,i) )/sol(0,i);
-		}
-	}
-	else
-	{
-		Fi(0) = _Ur(1);
-		Fi(1) = ( Ur(1)*Ur(1) - Ur(3)*Ur(3) )*Ur(0) + 0.5*g*_Ur(0)*_Ur(0);
-		Fi(2) = ( Ur(1)*Ur(2) - Ur(3)*Ur(4) )*Ur(0);
-		Fi(4) = ( Ur(1)*Ur(4) - Ur(2)*Ur(3) )*Ur(0);
-	}
-
-
 
 	if( _N*_dt*vp(4) < -0.5 )
   {
@@ -716,25 +690,6 @@ VectorXd WRS1::Flux_L(const Eigen::MatrixXd& sol, int i)
 	double dx = 1./_N;
 	VectorXd Fi, vp = _Sigl;
 	Fi.setZero(5);
-
-	if (i!=0)
-	{
-		if(abs(sol(0,i))>1e-14)
-		{
-			Fi(0) = sol(1,i);
-			Fi(1) = ( sol(1,i)*sol(1,i) - sol(3,i)*sol(3,i) )/sol(0,i) + 0.5*g*sol(0,i)*sol(0,i);
-			Fi(2) = ( sol(1,i)*sol(2,i) - sol(3,i)*sol(4,i) )/sol(0,i);
-			Fi(4) = ( sol(1,i)*sol(4,i) - sol(2,i)*sol(3,i) )/sol(0,i);
-		}
-	}
-	else
-	{
-		Fi(0) = _Ul(1);
-		Fi(1) = ( Ul(1)*Ul(1) - Ul(3)*Ul(3) )*Ul(0) + 0.5*g*_Ul(0)*_Ul(0);
-		Fi(2) = ( Ul(1)*Ul(2) - Ul(3)*Ul(4) )*Ul(0);
-		Fi(4) = ( Ul(1)*Ul(4) - Ul(2)*Ul(3) )*Ul(0);
-	}
-
 
 	if( _N*_dt*vp(4) > 0.5 )
   {
@@ -851,14 +806,14 @@ MatrixXd WRS1::interState(const Eigen::MatrixXd& sol, int i)
 			if(i>=_N/2)
 			{
 				ul = Ur(1); ur = Ur(1);
-				ul = Ur(2); ur = Ur(2);
+				vl = Ur(2); vr = Ur(2);
 				al = Ur(3);	ar = Ur(3);
 				bl = Ur(4);	br = Ur(4);
 			}
 			else
 			{
 				ul = Ul(1); ur = Ul(1);
-				ul = Ul(2); ur = Ul(2);
+				vl = Ul(2); vr = Ul(2);
 				al = Ul(3);	ar = Ul(3);
 				bl = Ul(4);	br = Ul(4);
 			}
@@ -970,33 +925,598 @@ MatrixXd WRS1::interState(const Eigen::MatrixXd& sol, int i)
 // -----------------------------------------
 WRS2::WRS2(DataFile* data_file) : SpaceScheme::SpaceScheme(data_file)
 {
+	_dt = data_file->Get_dt();
+	_ISl.setZero(9,6);
+	_ISr.setZero(9,6);
 
+	_stab = false;
+	if(data_file->Get_order() == 0)
+	{
+		_stab = true;
+		_RSO1 = new WRS1(data_file);
+		_RSO1->InitialCondition();
+	}
 }
 
-// Une étape du schéma en temps
+VectorXd WRS2::vp_c(const Eigen::MatrixXd& IS)
+{
+	double hr_, hl_, hr, hl;
+	double cl, cr, cal, car;
+	double ur, ul, u_;
+
+	hl = IS(0,0); hr = IS(0,5);
+	hl_= IS(0,1); hr_= IS(0,4);
+	ul = IS(1,0); ur = IS(1,5);	u_ = IS(1,3);
+	cl = IS(7,0); cr = IS(7,5);
+	cal= IS(8,0); car= IS(8,5);
+
+	VectorXd vp(5);
+	vp(0) = ul; vp(1) = u_;
+	vp(2) = u_;
+	vp(3) = u_;	vp(4) = ur;
+
+	if(hl>1e-12)
+		vp(0) -= cl/hl;
+	if(hl_>1e-12)
+		vp(1) -= cal/hl_;
+	if(hr_>1e-12)
+		vp(3) += car/hr_;
+	if(hr>1e-12)
+		vp(4) += cr/hr;
+
+	return vp;
+}
+
 void WRS2::BuildF(const double& t, const Eigen::MatrixXd& sol)
 {
+	double bl = 0, br = 0; _bmax = 0;
+	_Sigl.setZero(5);
+ 	_Sigr.setZero(5);
 
+	for(int i = 0; i<_N; i++)
+	{
+		_ISl = interState(sol, i);
+		_ISr = interState(sol, i+1);
+
+		_Sigl = vp_c(_ISl);	bl = max(abs(_Sigl(4)),abs(_Sigl(0)));
+		_Sigr = vp_c(_ISr);	br = max(abs(_Sigr(4)),abs(_Sigr(0)));
+
+		if(_bmax<bl)
+			_bmax = bl;
+		if(_bmax<br)
+			_bmax = br;
+
+		_F.col(i) = (Flux_R(sol,i)-Flux_L(sol,i));
+	}
+
+	//cout << "bmax = " << _bmax << endl;
+
+	_F = -_N*_F;
 }
 
-Eigen::VectorXd WRS2::Flux_R(const Eigen::MatrixXd& sol, int i)
+VectorXd WRS2::Flux_R(const Eigen::MatrixXd& sol, int i)
 {
+	double dx = 1./_N;
+	VectorXd Fi, vp = _Sigr;
+	Fi.setZero(5);
 
+	if( _N*_dt*vp(4) < -0.5 )
+  {
+    cout << endl << "The CFL is not respected ! " << endl; abort();
+  }
+
+	MatrixXd IS;
+	IS = interState2(sol, i+1);
+
+	if( vp(4)<0 )
+	{
+		Fi(0) -= -vp(4)*IS(0,5) + (vp(4)-vp(2))*IS(0,4) + (vp(2)-vp(0))*IS(0,2)
+						+ vp(0)*IS(0,0);
+		Fi(1) -= -vp(4)*IS(1,5) + (vp(4)-vp(2))*IS(1,4) + (vp(2)-vp(0))*IS(1,1)
+						+ vp(0)*IS(1,0);
+		Fi(2) -= -vp(4)*IS(2,5) + (vp(4)-vp(3))*IS(2,4) + (vp(3)-vp(2))*IS(2,3)
+						+ (vp(2)-vp(1))*IS(2,2) + (vp(1)-vp(0))*IS(2,1) + vp(0)*IS(2,0);
+		Fi(3) -= -vp(4)*IS(3,5) + (vp(4)-vp(2))*IS(3,4) + (vp(2)-vp(0))*IS(3,2)
+						+ vp(0)*IS(3,0);
+		Fi(4) -= -vp(4)*IS(4,5) + (vp(4)-vp(3))*IS(4,4) + (vp(3)-vp(2))*IS(4,3)
+						+ (vp(2)-vp(1))*IS(4,2) + (vp(1)-vp(0))*IS(4,1) + vp(0)*IS(4,0);
+	}
+	else if( vp(3) < 0)
+	{
+		Fi(0) -= -vp(2)*IS(0,4) + (vp(2)-vp(0))*IS(0,2) + vp(0)*IS(0,0);
+		Fi(1) -= -vp(2)*IS(1,4) + (vp(2)-vp(0))*IS(1,1) + vp(0)*IS(1,0);
+		Fi(2) -= -vp(3)*IS(2,4) + (vp(3)-vp(2))*IS(2,3) + (vp(2)-vp(1))*IS(2,2)
+						+ (vp(1)-vp(0))*IS(2,1) + vp(0)*IS(2,0);
+		Fi(3) -= -vp(2)*IS(3,4) + (vp(2)-vp(0))*IS(3,2) + vp(0)*IS(3,0);
+		Fi(4) -= -vp(3)*IS(4,4) + (vp(3)-vp(2))*IS(4,3) + (vp(2)-vp(1))*IS(4,2)
+						+ (vp(1)-vp(0))*IS(4,1) + vp(0)*IS(4,0);
+	}
+	else if( vp(2) < 0)
+	{
+		Fi(0) -= -vp(2)*IS(0,4) + (vp(2)-vp(0))*IS(0,2) + vp(0)*IS(0,0);
+		Fi(1) -= -vp(2)*IS(1,4) + (vp(2)-vp(0))*IS(1,1) + vp(0)*IS(1,0);
+		Fi(2) -= -vp(2)*IS(2,3) + (vp(2)-vp(1))*IS(2,2) + (vp(1)-vp(0))*IS(2,1)
+						+ vp(0)*IS(2,0);
+		Fi(3) -= -vp(2)*IS(3,4) + (vp(2)-vp(0))*IS(3,2) + vp(0)*IS(3,0);
+		Fi(4) -= -vp(2)*IS(4,3) + (vp(2)-vp(1))*IS(4,2) + (vp(1)-vp(0))*IS(4,1)
+						+ vp(0)*IS(4,0);
+	}
+	else if( vp(1) < 0)
+	{
+		Fi(0) -= -vp(0)*IS(0,2) + vp(0)*IS(0,0);
+		Fi(1) -= -vp(0)*IS(1,1) + vp(0)*IS(1,0);
+		Fi(2) -= -vp(1)*IS(2,2) + (vp(1)-vp(0))*IS(2,1) + vp(0)*IS(2,0);
+		Fi(3) -= -vp(0)*IS(3,2) + vp(0)*IS(3,0);
+		Fi(4) -= -vp(1)*IS(4,2) + (vp(1)-vp(0))*IS(4,1) + vp(0)*IS(4,0);
+	}
+	else if( vp(0) < 0)
+	{
+		Fi(0) -= -vp(0)*IS(0,2) + vp(0)*IS(0,0);
+		Fi(1) -= -vp(0)*IS(1,1) + vp(0)*IS(1,0);
+		Fi(2) -= -vp(0)*IS(2,1) + vp(0)*IS(2,0);
+		Fi(3) -= -vp(0)*IS(3,2) + vp(0)*IS(3,0);
+		Fi(4) -= -vp(0)*IS(4,1) + vp(0)*IS(4,0);
+	}
+
+	return Fi;
 }
 
-Eigen::VectorXd WRS2::Flux_L(const Eigen::MatrixXd& sol, int i)
+VectorXd WRS2::Flux_L(const Eigen::MatrixXd& sol, int i)
 {
+	double dx = 1./_N;
+	VectorXd Fi, vp = _Sigl;
+	Fi.setZero(5);
 
+	if( _N*_dt*vp(4) > 0.5 )
+  {
+    cout << endl << "The CFL is not respected ! " << endl; abort();
+  }
+
+	MatrixXd IS = _ISl;
+	IS = interState2(sol, i);
+
+
+	if( vp(0) > 0 )
+	{
+		Fi(0) += vp(0)*IS(0,0) + (vp(2)-vp(0))*IS(0,1) + (vp(4)-vp(2))*IS(0,3)
+						-vp(4)*IS(0,5);
+		Fi(1) += vp(0)*IS(1,0) + (vp(2)-vp(0))*IS(1,2) + (vp(4)-vp(2))*IS(1,3)
+		 				-vp(4)*IS(1,5);
+		Fi(2) += vp(0)*IS(2,0) + (vp(1)-vp(0))*IS(2,1) + (vp(2)-vp(1))*IS(2,2)
+		 				+(vp(3)-vp(2))*IS(2,3) + (vp(4)-vp(3))*IS(2,4) - vp(4)*IS(2,5);
+		Fi(3) += vp(0)*IS(3,0) + (vp(2)-vp(0))*IS(3,1) + (vp(4)-vp(2))*IS(3,3)
+						-vp(4)*IS(3,5);
+		Fi(4) += vp(0)*IS(4,0) + (vp(1)-vp(0))*IS(4,1) + (vp(2)-vp(1))*IS(4,2)
+		 				+(vp(3)-vp(2))*IS(4,3) + (vp(4)-vp(3))*IS(4,4) - vp(4)*IS(4,5);
+	}
+	else if( vp(1) > 0)
+	{
+		Fi(0) += vp(2)*IS(0,1) + (vp(4)-vp(2))*IS(0,3) - vp(4)*IS(0,5);
+		Fi(1) += vp(2)*IS(1,2) + (vp(4)-vp(2))*IS(1,3) - vp(4)*IS(1,5);
+		Fi(2) += vp(1)*IS(2,1) + (vp(2)-vp(1))*IS(2,2) + (vp(3)-vp(2))*IS(2,3)
+						+(vp(4)-vp(3))*IS(2,4) - vp(4)*IS(2,5);
+		Fi(3) += vp(2)*IS(3,1) + (vp(4)-vp(2))*IS(3,3) - vp(4)*IS(3,5);
+		Fi(4) += vp(1)*IS(4,1) + (vp(2)-vp(1))*IS(4,2) + (vp(3)-vp(2))*IS(4,3)
+						+(vp(4)-vp(3))*IS(4,4) - vp(4)*IS(4,5);
+	}
+	else if( vp(2) > 0)
+	{
+		Fi(0) += vp(2)*IS(0,1) + (vp(4)-vp(2))*IS(0,3) - vp(4)*IS(0,5);
+		Fi(1) += vp(2)*IS(1,3) + (vp(4)-vp(2))*IS(1,3) - vp(4)*IS(1,5);
+		Fi(2) += vp(2)*IS(2,2) + (vp(3)-vp(2))*IS(2,3) + (vp(4)-vp(3))*IS(2,4)
+						-vp(4)*IS(2,5);
+		Fi(3) += vp(2)*IS(3,1) + (vp(4)-vp(2))*IS(3,3) - vp(4)*IS(3,5);
+		Fi(4) += vp(2)*IS(4,2) + (vp(3)-vp(2))*IS(4,3) + (vp(4)-vp(3))*IS(4,4)
+						-vp(4)*IS(4,5);
+	}
+	else if( vp(3) > 0)
+	{
+		Fi(0) += vp(4)*IS(0,3) - vp(4)*IS(0,5);
+		Fi(1) += vp(4)*IS(1,3) - vp(4)*IS(1,5);
+		Fi(2) += vp(3)*IS(2,3) + (vp(4)-vp(3))*IS(2,4) - vp(4)*IS(2,5);
+		Fi(3) += vp(4)*IS(3,3) - vp(4)*IS(3,5);
+		Fi(4) += vp(3)*IS(4,3) + (vp(4)-vp(3))*IS(4,4) - vp(4)*IS(4,5);
+	}
+	else if( vp(4) > 0)
+	{
+		Fi(0) += vp(4)*IS(0,3) - vp(4)*IS(0,5);
+		Fi(1) += vp(4)*IS(1,3) - vp(4)*IS(1,5);
+		Fi(2) += vp(4)*IS(2,4) - vp(4)*IS(2,5);
+		Fi(3) += vp(4)*IS(3,3) - vp(4)*IS(3,5);
+		Fi(4) += vp(4)*IS(4,4) - vp(4)*IS(4,5);
+	}
+
+	return Fi;
 }
 
-Eigen::VectorXd WRS2::vp_c(const Eigen::MatrixXd& IS)
+MatrixXd WRS2::interState(const Eigen::MatrixXd& sol, int i)
 {
+	double hl, hr, hl_, hr_;
+	double ul, ur, u_;
+	double vl, vr, v_;
+	double al, ar, al_, ar_;
+	double bl, br, bl_, br_;
+	double pl, pr, p_;
+	double ptl, ptr, pt_;
+	double cl, cr, cl_, cr_;
+	double cal, car, cal_, car_;
+	double sl, sr;
 
+	MatrixXd IS;
+	IS.setZero(9,6);
+
+	//	Definition des variables gauche et droite
+	if((i>0)&&(i<_N))
+	{
+		hl = sol(0,i-1);
+		hr = sol(0,i);
+		if((abs(hl)>1e-12)&&(abs(hr)>1e-12))
+		{
+			ul = sol(1,i-1)/hl; ur = sol(1,i)/hr;
+			vl = sol(2,i-1)/hl; vr = sol(2,i)/hr;
+			al = sol(3,i-1)/hl;	ar = sol(3,i)/hr;
+			bl = sol(4,i-1)/hl;	br = sol(4,i)/hr;
+		}
+		else if ((abs(hl)<1e-12)&&(abs(hr)>1e-12))
+		{
+			ul = Ul(1); ur = sol(1,i)/hr;
+			vl = Ul(2); vr = sol(2,i)/hr;
+			al = Ul(3); ar = sol(3,i)/hr;
+			bl = Ul(4); br = sol(4,i)/hr;
+		}
+		else if ((abs(hl)>1e-12)&&(abs(hr)<1e-12))
+		{
+			ul = sol(1,i-1)/hl; ur = Ur(1);
+			vl = sol(2,i-1)/hl; vr = Ur(2);
+			al = sol(3,i-1)/hl;	ar = Ur(3);
+			bl = sol(4,i-1)/hl;	br = Ur(4);
+		}
+		else
+		{
+			if(i>=_N/2)
+			{
+				ul = Ur(1); ur = Ur(1);
+				vl = Ur(2); vr = Ur(2);
+				al = Ur(3);	ar = Ur(3);
+				bl = Ur(4);	br = Ur(4);
+			}
+			else
+			{
+				ul = Ul(1); ur = Ul(1);
+				vl = Ul(2); vr = Ul(2);
+				al = Ul(3);	ar = Ul(3);
+				bl = Ul(4);	br = Ul(4);
+			}
+		}
+	}
+	else if(i==0)
+	{
+		hr = sol(0,i); hl = _Ul(0);
+		ul = Ul(1); vl = Ul(2);
+		al = Ul(3); bl = Ul(4);
+		if(hr>1e-12)
+		{
+			ur = sol(1,i)/hr; vr = sol(2,i)/hr;
+			ar = sol(3,i)/hr; br = sol(4,i)/hr;
+		}
+		else
+		{
+			ur = Ur(1); vr = Ur(2);
+			ar = Ur(3);	br = Ur(4);
+		}
+	}
+	else
+	{
+		hl = sol(0,i-1); hr = Ur(0);
+		ur = Ur(1); vr = Ur(2);
+		ar = Ur(3); br = Ur(4);
+		if(hl>1e-12)
+		{
+			ul = sol(1,i-1)/hl; vl = sol(2,i-1)/hl;
+			al = sol(3,i-1)/hl; bl = sol(4,i-1)/hl;
+		}
+		else
+		{
+			ul = Ul(1); vl = Ul(2);
+			al = Ul(3); bl = Ul(4);
+		}
+	}
+
+	sl = sqrt(al*al+g*hl);
+	sr = sqrt(ar*ar+g*hr);
+	pl = (g*hl*0.5 - al*al)*hl;
+	pr = (g*hr*0.5 - ar*ar)*hr;
+	ptl = -hl*al*bl;
+	ptr = -hr*ar*br;
+
+	cl = 0; cr = 0;
+	if(hl>1e-12)
+		cl = hl*(sl + 1.5*(max(0.,ul-ur) + max(0.,pr - pl)/(hl*sl + hr*sr)));
+	if(hr>1e-12)
+		cr = hr*(sr + 1.5*(max(0.,ul-ur) + max(0.,pl - pr)/(hl*sl + hr*sr)));
+
+	cal = hl*abs(al);
+	car = hr*abs(ar);
+
+
+	// Calcul des etats intermediaires
+	hl_ = 0; hr_ = 0;
+	if(hl>1e-12)
+		hl_ = hl/( 1. + hl*( cr*(ur-ul) + pl-pr )/( cl*(cl+cr) ) );
+	if(hr>1e-12)
+		hr_ = hr/( 1. + hr*( cl*(ur-ul) + pr-pl )/( cr*(cl+cr) ) );
+
+	u_  = 0; v_  = 0;
+	p_  = 0; pt_ = 0;
+	bl_ = bl; br_ = br;
+	if((hr>1e-12)||(hl>1e-12))
+	{
+		u_ = ( cl*ul + cr*ur + pl - pr )/( cl + cr );
+		v_ = ( cal*vl + car*vr + ptl - ptr )/( cal + car );
+
+		p_ = ( cr*pl + cl*pr - cl*cr*(ur-ul) )/( cl+cr );
+		pt_= ( car*ptl + cal*ptr - cal*car*(vr-vl) )/( cal+car );
+
+		if(abs(car)>1e-12)
+			br_= br + (ptr - ptl + cal*(vr-vl)) * hr*ar/(car*(cal+car));
+		if(abs(cal)>1e-12)
+			bl_= bl + (ptl - ptr + car*(vr-vl)) * hl*al/(cal*(cal+car));
+	}
+
+	al_ = al; ar_ = ar;
+	if(hl>1e-12)
+		al_ = al*hl/hl_;
+ 	if(hr>1e-12)
+		ar_ = ar*hr/hr_;
+
+	// Faux
+	cl_ = cl; cr_ = cr;
+	cal_ = cal; car_ = car;
+
+	// Mise en mémoire des variables
+	IS << hl, hl_ , hl_ , hr_ , hr_ , hr ,
+				ul , u_  , u_  , u_  , u_  , ur ,
+				vl , vl  , v_  , v_  , vr  , vr ,
+				al , al_ , al_ , ar_ , ar_ , ar ,
+				bl , bl  , bl_ , br_ , br  , br ,
+				pl , p_  , p_  , p_  , p_  , pr ,
+				ptl, ptl , pt_ , pt_ , ptr , ptr,
+				cl , cl_ , cl_ , cr_ , cr_ , cr ,
+				cal, cal_, cal_, car_, car_, car;
+
+	// if((i == _N/2-1)||(i == _N/2)||(i == _N/2+1))
+	// 	cout << endl << endl << " i = " << i << " " << endl << IS << endl;
+	return IS;
 }
 
-Eigen::MatrixXd WRS2::interState(const Eigen::MatrixXd& sol, int i)
+MatrixXd WRS2::interState2(const Eigen::MatrixXd& sol, int i)
 {
+	double hl, hr, hl_, hr_;
+	double ul, ur, u_;
+	double vl, vr, v_;
+	double al, ar, al_, ar_;
+	double bl, br, bl_, br_;
+	double pl, pr, p_;
+	double ptl, ptr, pt_;
+	double cl, cr, cl_, cr_;
+	double cal, car, cal_, car_;
+	double sl, sr;
 
+	MatrixXd IS;
+	IS.setZero(9,6);
+
+	//	Definition des variables gauche et droite
+	if((i>0)&&(i<_N))
+	{
+		hl = 0.5*(sol(0,i)+sol(0,i-1));
+		if ((abs(sol(0,i))>1e-12)&&(abs(sol(0,i-1))>1e-12))
+		{
+			ul = 0.5*( sol(1,i)/sol(0,i) + sol(1,i-1)/sol(0,i-1) );
+			vl = 0.5*( sol(2,i)/sol(0,i) + sol(2,i-1)/sol(0,i-1) );
+			al = 0.5*( sol(3,i)/sol(0,i) + sol(3,i-1)/sol(0,i-1) );
+			bl = 0.5*( sol(4,i)/sol(0,i) + sol(4,i-1)/sol(0,i-1) );
+		}
+		else if ((abs(sol(0,i))>1e-12)&&(abs(sol(0,i-1))<1e-12))
+		{
+			ul = 0.5*( sol(1,i)/sol(0,i) + Ul(1) );
+			vl = 0.5*( sol(2,i)/sol(0,i) + Ul(2) );
+			al = 0.5*( sol(3,i)/sol(0,i) + Ul(3) );
+			bl = 0.5*( sol(4,i)/sol(0,i) + Ul(4) );
+		}
+		else if ((abs(sol(0,i))<1e-12)&&(abs(sol(0,i-1))>1e-12))
+		{
+			ul = 0.5*( Ur(1) + sol(1,i-1)/sol(0,i-1) );
+			vl = 0.5*( Ur(2) + sol(2,i-1)/sol(0,i-1) );
+			al = 0.5*( Ur(3) + sol(3,i-1)/sol(0,i-1) );
+			bl = 0.5*( Ur(4) + sol(4,i-1)/sol(0,i-1) );
+		}
+		else
+		{
+			if(i>=_N/2)
+			{
+				ul = Ur(1);
+				vl = Ur(2);
+				al = Ur(3);
+				bl = Ur(4);
+			}
+			else
+			{
+				ul = Ul(1);
+				vl = Ul(2);
+				al = Ul(3);
+				bl = Ul(4);
+			}
+		}
+	}
+	else if(i==0)
+	{
+		hl = 0.5*(sol(0,i) + Ul(0));
+		if (abs(sol(0,i))>1e-12)
+		{
+			ul = 0.5*( sol(1,i)/sol(0,i) + Ul(1) );
+			vl = 0.5*( sol(2,i)/sol(0,i) + Ul(2) );
+			al = 0.5*( sol(3,i)/sol(0,i) + Ul(3) );
+			bl = 0.5*( sol(4,i)/sol(0,i) + Ul(4) );
+		}
+		else
+		{
+			ul = Ul(1);
+			vl = Ul(2);
+			al = Ul(3);
+			bl = Ul(4);
+		}
+	}
+	else
+	{
+		hl = 0.5*(Ur(0)+sol(0,i-1));
+		if (abs(sol(0,i-1))>1e-12)
+		{
+			ul = 0.5*( Ur(1) + sol(1,i-1)/sol(0,i-1) );
+			vl = 0.5*( Ur(2) + sol(2,i-1)/sol(0,i-1) );
+			al = 0.5*( Ur(3) + sol(3,i-1)/sol(0,i-1) );
+			bl = 0.5*( Ur(4) + sol(4,i-1)/sol(0,i-1) );
+		}
+		else
+		{
+			ul = Ur(1);
+			vl = Ur(2);
+			al = Ur(3);
+			bl = Ur(4);
+		}
+	}
+
+	if(i<_N-1)
+	{
+		hr = 0.5*(3*sol(0,i)-sol(0,i+1));
+		if((abs(sol(0,i))>1e-12)&&(abs(sol(0,i+1))>1e-12))
+		{
+			ur = 0.5*( 3*sol(1,i)/sol(0,i) - sol(1,i+1)/sol(0,i+1) );
+			vr = 0.5*( 3*sol(2,i)/sol(0,i) - sol(2,i+1)/sol(0,i+1) );
+			ar = 0.5*( 3*sol(3,i)/sol(0,i) - sol(3,i+1)/sol(0,i+1) );
+			br = 0.5*( 3*sol(4,i)/sol(0,i) - sol(4,i+1)/sol(0,i+1) );
+		}
+		else if((abs(sol(0,i))>1e-12)&&(abs(sol(0,i+1))<1e-12))
+		{
+			ur = 0.5*( 3*sol(1,i)/sol(0,i) - Ur(1) );
+			vr = 0.5*( 3*sol(2,i)/sol(0,i) - Ur(2) );
+			ar = 0.5*( 3*sol(3,i)/sol(0,i) - Ur(3) );
+			br = 0.5*( 3*sol(4,i)/sol(0,i) - Ur(4) );
+		}
+		else if((abs(sol(0,i))<1e-12)&&(abs(sol(0,i+1))>1e-12))
+		{
+			ur = 0.5*( 3*Ul(1) - sol(1,i+1)/sol(0,i+1) );
+			vr = 0.5*( 3*Ul(2) - sol(2,i+1)/sol(0,i+1) );
+			ar = 0.5*( 3*Ul(3) - sol(3,i+1)/sol(0,i+1) );
+			br = 0.5*( 3*Ul(4) - sol(4,i+1)/sol(0,i+1) );
+		}
+		else
+		{
+			if(i>=_N/2)
+			{
+				ur = Ur(1);
+				vr = Ur(2);
+				ar = Ur(3);
+				br = Ur(4);
+			}
+			else
+			{
+				ur = Ul(1);
+				vr = Ul(2);
+				ar = Ul(3);
+				br = Ul(4);
+			}
+		}
+	}
+	if(i==_N-1)
+	{
+		if(abs(sol(0,i))>1e-12)
+		{
+			ur = 0.5*( 3*sol(1,i)/sol(0,i) - Ur(1) );
+			vr = 0.5*( 3*sol(2,i)/sol(0,i) - Ur(2) );
+			ar = 0.5*( 3*sol(3,i)/sol(0,i) - Ur(3) );
+			br = 0.5*( 3*sol(4,i)/sol(0,i) - Ur(4) );
+		}
+		else
+		{
+			ur = Ur(1);
+			vr = Ur(2);
+			ar = Ur(3);
+			br = Ur(4);
+		}
+	}
+	else
+	{
+		ur = Ur(1);
+		vr = Ur(2);
+		ar = Ur(3);
+		br = Ur(4);
+	}
+
+	sl = sqrt(al*al+g*hl);
+	sr = sqrt(ar*ar+g*hr);
+	pl = (g*hl*0.5 - al*al)*hl;
+	pr = (g*hr*0.5 - ar*ar)*hr;
+	ptl = -hl*al*bl;
+	ptr = -hr*ar*br;
+
+	cl = 0; cr = 0;
+	if(hl>1e-12)
+		cl = hl*(sl + 1.5*(max(0.,ul-ur) + max(0.,pr - pl)/(hl*sl + hr*sr)));
+	if(hr>1e-12)
+		cr = hr*(sr + 1.5*(max(0.,ul-ur) + max(0.,pl - pr)/(hl*sl + hr*sr)));
+
+	cal = hl*abs(al);
+	car = hr*abs(ar);
+
+
+	// Calcul des etats intermediaires
+	hl_ = 0; hr_ = 0;
+	if(hl>1e-12)
+		hl_ = hl/( 1. + hl*( cr*(ur-ul) + pl-pr )/( cl*(cl+cr) ) );
+	if(hr>1e-12)
+		hr_ = hr/( 1. + hr*( cl*(ur-ul) + pr-pl )/( cr*(cl+cr) ) );
+
+	u_  = 0; v_  = 0;
+	p_  = 0; pt_ = 0;
+	bl_ = bl; br_ = br;
+	if((hr>1e-12)||(hl>1e-12))
+	{
+		u_ = ( cl*ul + cr*ur + pl - pr )/( cl + cr );
+		v_ = ( cal*vl + car*vr + ptl - ptr )/( cal + car );
+
+		p_ = ( cr*pl + cl*pr - cl*cr*(ur-ul) )/( cl+cr );
+		pt_= ( car*ptl + cal*ptr - cal*car*(vr-vl) )/( cal+car );
+
+		if(abs(car)>1e-12)
+			br_= br + (ptr - ptl + cal*(vr-vl)) * hr*ar/(car*(cal+car));
+		if(abs(cal)>1e-12)
+			bl_= bl + (ptl - ptr + car*(vr-vl)) * hl*al/(cal*(cal+car));
+	}
+
+	al_ = al; ar_ = ar;
+	if(hl>1e-12)
+		al_ = al*hl/hl_;
+ 	if(hr>1e-12)
+		ar_ = ar*hr/hr_;
+
+	// Faux
+	cl_ = cl; cr_ = cr;
+	cal_ = cal; car_ = car;
+
+	// Mise en mémoire des variables
+	IS << hl , hl_ , hl_ , hr_ , hr_ , hr ,
+				ul , u_  , u_  , u_  , u_  , ur ,
+				vl , vl  , v_  , v_  , vr  , vr ,
+				al , al_ , al_ , ar_ , ar_ , ar ,
+				bl , bl  , bl_ , br_ , br  , br ,
+				pl , p_  , p_  , p_  , p_  , pr ,
+				ptl, ptl , pt_ , pt_ , ptr , ptr,
+				cl , cl_ , cl_ , cr_ , cr_ , cr ,
+				cal, cal_, cal_, car_, car_, car;
+
+	// if((i == _N/2-1)||(i == _N/2)||(i == _N/2+1))
+	// 	cout << endl << endl << " i = " << i << " " << endl << IS << endl;
+	return IS;
 }
 
 

@@ -94,7 +94,6 @@ class WRS1 : public SpaceScheme
 {
 	private:
 		double _dt;
-		bool _stab, _o2;
 		Eigen::VectorXd _Sigl, _Sigr;
 		Eigen::MatrixXd _ISl, _ISr;
 
@@ -137,6 +136,8 @@ class WRS2 : public SpaceScheme
 		Eigen::VectorXd vp_c(const Eigen::MatrixXd& IS);
 
 		Eigen::MatrixXd interState(const Eigen::MatrixXd& sol, int i);
+
+		Eigen::MatrixXd interState2(const Eigen::MatrixXd& sol, int i);
 };
 
 

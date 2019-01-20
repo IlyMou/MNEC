@@ -179,9 +179,7 @@ void DataFile::ReadDataFile()
   }
   cout << "-------------------------------------------------" << endl;
 
-  cout << " -- Solver : " << _numerical_flux_choice;
-  if(_numerical_flux_choice=="rusanov") cout << "  order " << _order;
-  cout << endl;
+  cout << " -- Solver : " << _numerical_flux_choice << "  order " << _order << endl;
   cout << " -- Time Scheme : " << _scheme << endl;
   cout << " -- Time step : " << _dt << endl;
   cout << " -- Mesh step : " << _N_mesh << endl;
